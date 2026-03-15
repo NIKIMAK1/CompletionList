@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/", label: "Главная" },
@@ -11,6 +12,19 @@ const navItems = [
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    const currentTheme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    setTheme(currentTheme);
+  }, []);
+
+  function toggleTheme() {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
+    window.localStorage.setItem("theme", nextTheme);
+  }
 
   return (
     <header className="siteHeader">
@@ -38,6 +52,10 @@ export function SiteHeader() {
             );
           })}
         </nav>
+
+        <button className="siteThemeToggle" onClick={toggleTheme} type="button">
+          {theme === "dark" ? "Light theme" : "Dark theme"}
+        </button>
       </div>
     </header>
   );
