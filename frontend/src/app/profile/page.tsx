@@ -583,7 +583,7 @@ export default function ProfilePage() {
                           {game.release_year ? <p>{game.release_year}</p> : null}
                           {game.genres.length ? <p>{game.genres.join(", ")}</p> : null}
                           {game.tags.length ? <p>#{game.tags.slice(0, 4).join(" #")}</p> : null}
-                          <p>{game.note || "No note"}</p>
+                          <p className="gameNotePreview">{game.note || "No note"}</p>
                         </div>
                       </Link>
                       <div className="gameCardActionBar">

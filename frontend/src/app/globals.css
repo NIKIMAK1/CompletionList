@@ -555,6 +555,14 @@ body {
   font-size: 14px;
 }
 
+.gameNotePreview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
 .cardActions {
   display: flex;
   gap: 10px;
@@ -778,7 +786,7 @@ body {
 .homeHero {
   margin-top: 22px;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 460px);
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 360px);
   gap: 22px;
 }
 
@@ -881,6 +889,110 @@ body {
   padding: 6px 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
+}
+
+.homePopularHero {
+  position: relative;
+  min-height: 500px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  box-shadow: 0 18px 42px var(--shadow);
+  background: rgba(255, 252, 246, 0.9);
+}
+
+.homePopularHero img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.homePopularOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 34px;
+  display: flex;
+  flex-direction: column;
+  color: white;
+  background:
+    linear-gradient(180deg, rgba(10, 13, 18, 0.12) 0%, rgba(10, 13, 18, 0.86) 68%, rgba(10, 13, 18, 0.96) 100%);
+}
+
+.homePopularContent {
+  margin-top: auto;
+}
+
+.homePopularOverlay h1 {
+  margin: 0;
+  max-width: 640px;
+  font-size: clamp(38px, 6vw, 74px);
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+}
+
+.homePopularOverlay .homeHeroText {
+  max-width: 600px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.homePopularRail {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.homePopularRailItem {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(255, 252, 246, 0.92);
+  box-shadow: 0 16px 32px rgba(34, 46, 73, 0.08);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.homePopularRailItem:hover {
+  transform: translateY(-1px);
+}
+
+.homePopularRailItemActive {
+  border-color: rgba(79, 111, 170, 0.35);
+  background:
+    radial-gradient(circle at top right, rgba(79, 111, 170, 0.12), transparent 34%),
+    rgba(255, 252, 246, 0.96);
+}
+
+.homePopularRailItem img {
+  width: 78px;
+  height: 104px;
+  object-fit: cover;
+  border-radius: 16px;
+  display: block;
+}
+
+.homePopularRailBody {
+  min-width: 0;
+  align-self: center;
+}
+
+.homePopularRailBody strong {
+  display: block;
+  font-size: 20px;
+  line-height: 1.02;
+}
+
+.homePopularRailBody p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .homeContent {
@@ -1006,29 +1118,6 @@ body {
   letter-spacing: -0.04em;
 }
 
-.homeDiscoveryLead {
-  overflow: hidden;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid rgba(24, 22, 21, 0.08);
-}
-
-.homeDiscoveryLeadPoster {
-  position: relative;
-  aspect-ratio: 0.92;
-  background: rgba(255, 255, 255, 0.55);
-}
-
-.homeDiscoveryLeadBody {
-  padding: 16px;
-}
-
-.homeDiscoveryLeadBody h3 {
-  margin: 0;
-  font-size: 28px;
-  line-height: 0.96;
-}
-
 .homeDiscoveryList {
   display: grid;
   gap: 12px;
@@ -1119,20 +1208,6 @@ body {
   width: min(1320px, calc(100% - 32px));
   margin: 0 auto;
   padding: 28px 0 52px;
-}
-
-.gamePageTop {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.gameSourceBadge {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(79, 111, 170, 0.12);
-  color: #36507e;
 }
 
 .searchPage {
@@ -1283,6 +1358,49 @@ body {
 
 .gameMetaCard strong {
   font-size: 18px;
+}
+
+.gameListPanel {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(24, 22, 21, 0.08);
+  display: grid;
+  gap: 14px;
+}
+
+.gameListPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.gameListPanelHeader strong {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.gameListPanelControls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gameListSelect {
+  min-width: 180px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+  font: inherit;
+}
+
+.gameInlineMessage {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 .gameTagGroup {

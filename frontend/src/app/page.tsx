@@ -153,8 +153,9 @@ export default function HomePage() {
     }
   }
 
-  const featuredGame = catalogGames[0] ?? null;
   const currentYear = new Date().getFullYear();
+  const popularGames = sortByRatingDesc(catalogGames).slice(0, 5);
+  const [activePopularIndex, setActivePopularIndex] = useState(0);
   const releasedGames = sortByReleaseYearDesc(
     catalogGames.filter((game) => game.release_year !== null && game.release_year <= currentYear),
   );
@@ -168,6 +169,23 @@ export default function HomePage() {
   const recentlyReleased = (releasedGames.length ? releasedGames : catalogGames).slice(0, 5);
   const comingSoon = (upcomingGames.length ? upcomingGames : catalogGames.slice(2)).slice(0, 5);
   const mostAnticipated = (anticipatedGames.length ? anticipatedGames : sortByRatingDesc(catalogGames)).slice(0, 5);
+  const activePopularGame = popularGames[activePopularIndex] ?? popularGames[0] ?? null;
+
+  useEffect(() => {
+    if (!popularGames.length) {
+      return;
+    }
+
+    setActivePopularIndex((currentIndex) => (currentIndex >= popularGames.length ? 0 : currentIndex));
+
+    const intervalId = window.setInterval(() => {
+      setActivePopularIndex((currentIndex) => (currentIndex + 1) % popularGames.length);
+    }, 5000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [popularGames.length]);
 
   const discoveryColumns = [
     {
@@ -243,41 +261,54 @@ export default function HomePage() {
       {message ? <p className="homeMessage">{message}</p> : null}
 
       <section className="homeHero" id="featured">
-        <div className="homeHeroMain">
-          <p className="homeEyebrow">Live IGDB</p>
-          <h1>Game covers, genres, tags and release years from IGDB</h1>
-          <p className="homeHeroText">
-            The backend requests IGDB through Twitch app authentication and exposes safe site endpoints for
-            search and discovery.
-          </p>
-          <div className="homeHeroActions">
-            <Link className="homePrimaryButton" href="/profile">
-              Search and save games
-            </Link>
-            <a className="homeGhostButton" href="#catalog">
-              Browse catalog
-            </a>
-          </div>
-        </div>
-
-        {featuredGame ? (
-          <Link className="homeFeaturedCard homeFeaturedLink" href={gameHref(featuredGame)}>
-            <img alt={featuredGame.title} src={featuredGame.cover_url} />
-            <div className="homeFeaturedOverlay">
-              <span className="homeStatusChip">Featured</span>
-              <h2>{featuredGame.title}</h2>
-              <p>{gameMeta(featuredGame)}</p>
-              <div className="homeFeaturedMeta">
-                <span>{featuredGame.release_year ?? "TBA"}</span>
-                <span>{featuredGame.rating ? featuredGame.rating.toFixed(1) : "NR"}</span>
-                <span>{featuredGame.tags.slice(0, 2).join(", ") || "IGDB"}</span>
+        {activePopularGame ? (
+          <>
+            <Link className="homePopularHero homeFeaturedLink" href={gameHref(activePopularGame)}>
+              <img alt={activePopularGame.title} src={activePopularGame.cover_url} />
+              <div className="homePopularOverlay">
+                <div className="homePopularContent">
+                  <p className="homeEyebrow">Popular right now</p>
+                  <h1>{activePopularGame.title}</h1>
+                  <p className="homeHeroText">{shortSummary(activePopularGame.summary)}</p>
+                  <div className="homeFeaturedMeta">
+                    <span>{activePopularGame.release_year ?? "TBA"}</span>
+                    <span>{activePopularGame.rating ? activePopularGame.rating.toFixed(1) : "NR"}</span>
+                    <span>{gameMeta(activePopularGame)}</span>
+                  </div>
+                  <div className="homeHeroActions">
+                    <span className="homePrimaryButton">View game</span>
+                    <span className="homeGhostButton">Open details</span>
+                  </div>
+                </div>
               </div>
+            </Link>
+
+            <div className="homePopularRail">
+              {popularGames.map((game, index) => (
+                <button
+                  className={index === activePopularIndex ? "homePopularRailItem homePopularRailItemActive" : "homePopularRailItem"}
+                  key={game.igdb_id}
+                  onClick={() => setActivePopularIndex(index)}
+                  type="button"
+                >
+                  <img alt={game.title} src={game.cover_url} />
+                  <div className="homePopularRailBody">
+                    <strong>{game.title}</strong>
+                    <p>
+                      {game.release_year ?? "TBA"} · {game.rating ? game.rating.toFixed(1) : "NR"}
+                    </p>
+                  </div>
+                </button>
+              ))}
             </div>
-          </Link>
+          </>
         ) : (
-          <article className="homeFeaturedCard">
-            <div className="homeFeaturedOverlay">
-              <h2>{catalogLoading ? "Loading catalog..." : "IGDB is not configured yet"}</h2>
+          <article className="homePopularHero">
+            <div className="homePopularOverlay">
+              <div className="homePopularContent">
+                <p className="homeEyebrow">Popular right now</p>
+                <h1>{catalogLoading ? "Loading catalog..." : "IGDB is not configured yet"}</h1>
+              </div>
             </div>
           </article>
         )}
@@ -297,9 +328,6 @@ export default function HomePage() {
 
           <section className="homeDiscoveryGrid">
             {discoveryColumns.map((column) => {
-              const leadGame = column.games[0];
-              const listGames = column.games.slice(1);
-
               return (
                 <section className={`homeDiscoveryColumn ${column.accent}`} key={column.key}>
                   <div className="homeDiscoveryHead">
@@ -307,28 +335,10 @@ export default function HomePage() {
                     <strong>{column.title}</strong>
                   </div>
 
-                  {leadGame ? (
-                    <Link className="homeDiscoveryLead homeGameLink" href={gameHref(leadGame)}>
-                      <div className="homeDiscoveryLeadPoster">
-                        <img alt={leadGame.title} src={leadGame.cover_url} />
-                        <span className="homeCornerChip">{leadGame.release_year ?? "TBA"}</span>
-                      </div>
-                      <div className="homeDiscoveryLeadBody">
-                        <h3>{leadGame.title}</h3>
-                        <p className="homeGameGenre">{gameMeta(leadGame)}</p>
-                        <div className="homeGameMeta">
-                          <span>{leadGame.release_year ?? "TBA"}</span>
-                          <span>{leadGame.rating ? leadGame.rating.toFixed(1) : "NR"}</span>
-                        </div>
-                        <p className="homeGameSubtitle">{shortSummary(leadGame.summary)}</p>
-                      </div>
-                    </Link>
-                  ) : null}
-
                   <div className="homeDiscoveryList">
-                    {listGames.map((game, index) => (
+                    {column.games.map((game, index) => (
                       <Link className="homeDiscoveryItem homeGameLink" href={gameHref(game)} key={game.igdb_id}>
-                        <span className="homeDiscoveryIndex">{String(index + 2).padStart(2, "0")}</span>
+                        <span className="homeDiscoveryIndex">{String(index + 1).padStart(2, "0")}</span>
                         <img alt={game.title} src={game.cover_url} />
                         <div className="homeDiscoveryItemBody">
                           <strong>{game.title}</strong>
@@ -351,7 +361,7 @@ export default function HomePage() {
             <h3>Featured picks</h3>
             <div className="homeNewsList">
               {catalogGames.slice(0, 4).map((game) => (
-                <article className="homeNewsItem" key={game.igdb_id}>
+                <Link className="homeNewsItem homeGameLink" href={gameHref(game)} key={game.igdb_id}>
                   <span className="homeNewsDot" />
                   <div>
                     <strong>{game.title}</strong>
@@ -359,7 +369,7 @@ export default function HomePage() {
                       {game.release_year ?? "TBA"} · {gameMeta(game)}
                     </p>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           </section>
