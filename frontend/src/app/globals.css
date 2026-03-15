@@ -66,6 +66,11 @@ body {
   color: var(--muted);
 }
 
+.contentStack {
+  display: grid;
+  gap: 22px;
+}
+
 .dashboard {
   display: grid;
   grid-template-columns: minmax(320px, 0.95fr) minmax(240px, 0.55fr);
@@ -190,7 +195,9 @@ body {
 
 .primaryButton,
 .secondaryButton,
-.tab {
+.tab,
+.ghostButton,
+.dangerButton {
   border: 0;
   border-radius: 999px;
   padding: 12px 18px;
@@ -205,14 +212,22 @@ body {
 }
 
 .secondaryButton,
-.tab {
+.tab,
+.ghostButton {
   background: rgba(31, 27, 22, 0.08);
   color: var(--text);
 }
 
+.dangerButton {
+  background: rgba(147, 52, 52, 0.12);
+  color: #922f2f;
+}
+
 .primaryButton:hover,
 .secondaryButton:hover,
-.tab:hover {
+.tab:hover,
+.ghostButton:hover,
+.dangerButton:hover {
   transform: translateY(-1px);
 }
 
@@ -345,14 +360,16 @@ body {
 
 .cardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 230px));
   gap: 18px;
+  justify-content: start;
 }
 
 .gameCard {
   position: relative;
   overflow: hidden;
-  min-height: 260px;
+  width: 230px;
+  min-height: 390px;
   border: 1px solid rgba(24, 22, 21, 0.08);
   border-radius: 24px;
   background:
@@ -360,18 +377,52 @@ body {
   box-shadow: 0 18px 30px rgba(35, 30, 24, 0.08);
 }
 
+.gameCardEditing {
+  min-height: auto;
+}
+
 .gameAccent {
   height: 6px;
   width: 100%;
 }
 
+.gamePosterWrap {
+  aspect-ratio: 0.74;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(48, 56, 72, 0.12), rgba(166, 109, 44, 0.12));
+}
+
+.gamePoster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.gamePosterPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 72px;
+  font-weight: 700;
+  color: rgba(24, 22, 21, 0.3);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.6), transparent 40%),
+    linear-gradient(180deg, rgba(79, 103, 143, 0.18), rgba(166, 109, 44, 0.14));
+}
+
 .gameCardBody {
-  padding: 18px 18px 20px;
+  padding: 14px 14px 16px;
   display: flex;
-  min-height: calc(100% - 6px);
+  min-height: calc(100% - 6px - 33.33%);
   flex-direction: column;
   justify-content: space-between;
-  gap: 18px;
+  gap: 12px;
+}
+
+.gameCardEditing .gameCardBody {
+  min-height: auto;
 }
 
 .gameMetaRow {
@@ -393,13 +444,41 @@ body {
 
 .gameCard h3 {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1.1;
+}
+
+.gameHeading {
+  display: grid;
+  gap: 10px;
+}
+
+.ratingBlock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ratingBlock strong {
+  font-size: 16px;
+}
+
+.ratingBlock span {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: #c48d34;
 }
 
 .gameCard p {
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
+}
+
+.cardActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .gameCardEmpty {
@@ -421,6 +500,15 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .cardGrid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+
+  .gameCard {
+    width: auto;
+    min-height: 340px;
+  }
+
   .libraryHeader {
     flex-direction: column;
     align-items: flex-start;
@@ -438,5 +526,401 @@ body {
   .gameMetaRow {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+.homePage {
+  width: min(1380px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 22px 0 48px;
+}
+
+.homeTopbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 18px;
+}
+
+.homeBrand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.homeBrandMark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4f6faa, #36507e);
+  color: white;
+  font-weight: 700;
+}
+
+.homeBrandLabel,
+.homePanelLabel,
+.homeEyebrow,
+.homeSectionLabel {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+
+.homeNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  min-height: 52px;
+  color: var(--muted);
+}
+
+.homeUserPanel {
+  min-width: 300px;
+}
+
+.homeProfileCard,
+.homeAuthCard,
+.homeHeroMain,
+.homeFeaturedCard,
+.homeSideCard {
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  background: rgba(255, 252, 246, 0.9);
+  box-shadow: 0 18px 42px var(--shadow);
+}
+
+.homeProfileCard,
+.homeAuthCard {
+  padding: 18px;
+}
+
+.homeProfileActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.homeLinkButton,
+.homeGhostButton,
+.homePrimaryButton,
+.homeTab,
+.homeStatusTab {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 16px;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.homeLinkButton,
+.homeGhostButton,
+.homeTab,
+.homeStatusTab {
+  background: rgba(31, 27, 22, 0.08);
+  color: var(--text);
+}
+
+.homePrimaryButton {
+  background: linear-gradient(135deg, #4f6faa, #36507e);
+  color: white;
+}
+
+.homeLinkButton:hover,
+.homeGhostButton:hover,
+.homePrimaryButton:hover,
+.homeTab:hover,
+.homeStatusTab:hover {
+  transform: translateY(-1px);
+}
+
+.homeAuthTabs {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.homeTabActive,
+.homeStatusTabActive {
+  background: var(--text);
+  color: #fffdf9;
+}
+
+.homeAuthForm {
+  display: grid;
+  gap: 10px;
+}
+
+.homeAuthForm input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  font: inherit;
+  color: var(--text);
+}
+
+.homeMessage {
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(46, 111, 94, 0.1);
+  border: 1px solid rgba(46, 111, 94, 0.18);
+}
+
+.homeHero {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 460px);
+  gap: 22px;
+}
+
+.homeHeroMain {
+  padding: 34px;
+  background:
+    radial-gradient(circle at top right, rgba(79, 111, 170, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 247, 251, 0.92));
+}
+
+.homeHeroMain h1 {
+  margin: 0;
+  font-size: clamp(36px, 7vw, 72px);
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+}
+
+.homeHeroText,
+.homeSectionText,
+.homeSideCard p,
+.homeNewsItem p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.homeHeroText {
+  max-width: 680px;
+  margin: 18px 0 0;
+  font-size: 18px;
+}
+
+.homeHeroActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.homeFeaturedCard {
+  position: relative;
+  overflow: hidden;
+  min-height: 360px;
+}
+
+.homeFeaturedCard img,
+.homeGamePoster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.homeFeaturedOverlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 22px;
+  color: white;
+  background: linear-gradient(180deg, transparent 0%, rgba(16, 20, 29, 0.88) 100%);
+}
+
+.homeFeaturedOverlay h2 {
+  margin: 12px 0 8px;
+  font-size: 34px;
+}
+
+.homeFeaturedOverlay p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.homeStatusChip,
+.homeCornerChip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: white;
+}
+
+.homeFeaturedMeta,
+.homeGameMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.homeFeaturedMeta span,
+.homeGameMeta span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.homeContent {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 22px;
+  margin-top: 22px;
+  align-items: start;
+}
+
+.homeMainColumn {
+  display: grid;
+  gap: 18px;
+}
+
+.homeSectionTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+}
+
+.homeSectionTop h2,
+.homeSideCard h3 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.homeStatusTabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.homeCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 190px));
+  gap: 18px;
+  justify-content: start;
+}
+
+.homeGameCard {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: rgba(255, 252, 246, 0.92);
+  box-shadow: 0 16px 32px rgba(34, 46, 73, 0.08);
+}
+
+.homeGamePoster {
+  position: relative;
+  aspect-ratio: 0.72;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.homeCornerChip {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+
+.homeGameBody {
+  padding: 14px;
+}
+
+.homeGameSubtitle {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.homeGameBody h3 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.12;
+}
+
+.homeGameGenre {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.homeSidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.homeSideCard {
+  padding: 20px;
+}
+
+.homeNewsList {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.homeNewsItem {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.homeNewsDot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: #4f6faa;
+}
+
+.homeAccentCard {
+  background:
+    radial-gradient(circle at top right, rgba(79, 111, 170, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(242, 246, 251, 0.96));
+}
+
+@media (max-width: 1100px) {
+  .homeTopbar,
+  .homeHero,
+  .homeContent {
+    grid-template-columns: 1fr;
+  }
+
+  .homeNav {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .homePage {
+    width: min(100% - 18px, 1380px);
+  }
+
+  .homeSectionTop {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .homeCardGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
