@@ -165,9 +165,7 @@ export default function GamePage() {
 
       try {
         const storedToken = window.localStorage.getItem("authToken");
-        const isIgdbSlug = /^igdb-\d+$/.test(slug);
-
-        if (!isIgdbSlug && storedToken) {
+        if (storedToken) {
           const userGames = (await apiRequest("/games/", {}, storedToken)) as UserGameEntry[];
           const matchingUserGame = userGames.find((gameEntry) => slugifyTitle(gameEntry.title) === slug);
 
@@ -178,24 +176,20 @@ export default function GamePage() {
           }
         }
 
-        if (isIgdbSlug) {
-          const response = await fetch(`${API_URL}/igdb/game/${encodeURIComponent(slug)}/`, {
-            cache: "no-store",
-          });
+        const response = await fetch(`${API_URL}/igdb/game/${encodeURIComponent(slug)}/`, {
+          cache: "no-store",
+        });
 
-          if (!response.ok) {
-            throw new Error("Game not found");
-          }
-
-          const payload = await response.json();
-          if (!cancelled) {
-            setGame(normalizeGame(payload));
-            setIsLoading(false);
-          }
-          return;
+        if (!response.ok) {
+          throw new Error("Game not found");
         }
 
-        throw new Error("Game not found");
+        const payload = await response.json();
+        if (!cancelled) {
+          setGame(normalizeGame(payload));
+          setIsLoading(false);
+        }
+        return;
       } catch {
         try {
           const storedToken = window.localStorage.getItem("authToken");
