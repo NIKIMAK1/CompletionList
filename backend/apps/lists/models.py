@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -7,6 +8,13 @@ class GameEntry(models.Model):
         PLAYING = "playing", "Играю"
         COMPLETED = "completed", "Прошел"
 
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="game_entries",
+        null=True,
+        blank=True,
+    )
     title = models.CharField(max_length=255)
     platform = models.CharField(max_length=100, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PLANNED)

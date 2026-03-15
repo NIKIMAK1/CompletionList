@@ -15,8 +15,9 @@
 
 - модель `GameEntry`
 - API `GET/POST /api/games/`
+- авторизация через токен: `/api/auth/register/`, `/api/auth/login/`, `/api/auth/me/`, `/api/auth/logout/`
 - Django admin
-- простая витрина на главной странице Next.js
+- главная страница Next.js с регистрацией, входом и личным списком игр
 
 ## Быстрый старт
 

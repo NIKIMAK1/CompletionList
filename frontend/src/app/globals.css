@@ -66,6 +66,18 @@ body {
   gap: 16px;
 }
 
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.2fr) minmax(240px, 0.8fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.authLayout {
+  display: grid;
+  grid-template-columns: minmax(280px, 420px);
+}
+
 .card {
   padding: 20px;
   border: 1px solid var(--border);
@@ -81,6 +93,12 @@ body {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.formCard,
+.authCard,
+.statsCard {
+  min-height: 100%;
 }
 
 .card h2 {
@@ -122,6 +140,115 @@ body {
   color: var(--muted);
 }
 
+.sectionLabel,
+.accountLabel {
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.accountBox {
+  min-width: 220px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: rgba(255, 249, 240, 0.72);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.message {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(46, 111, 94, 0.1);
+  border: 1px solid rgba(46, 111, 94, 0.18);
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+.form input,
+.form select,
+.form textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text);
+  font: inherit;
+}
+
+.form textarea {
+  resize: vertical;
+}
+
+.primaryButton,
+.secondaryButton,
+.tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 160ms ease, opacity 160ms ease, background 160ms ease;
+}
+
+.primaryButton {
+  background: var(--text);
+  color: #fffdf9;
+}
+
+.secondaryButton,
+.tab {
+  background: rgba(31, 27, 22, 0.08);
+  color: var(--text);
+}
+
+.primaryButton:hover,
+.secondaryButton:hover,
+.tab:hover {
+  transform: translateY(-1px);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.authSwitch {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.activeTab {
+  background: var(--text);
+  color: #fffdf9;
+}
+
+.statsRow {
+  margin-top: 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.statsRow span {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.statsRow small {
+  color: var(--muted);
+}
+
 .empty {
   min-height: 180px;
   display: flex;
@@ -133,6 +260,15 @@ body {
   .page {
     width: min(100% - 20px, 1100px);
     padding-top: 32px;
+  }
+
+  .hero {
+    display: grid;
+    gap: 20px;
+  }
+
+  .dashboard {
+    grid-template-columns: 1fr;
   }
 
   .cardHeader {
