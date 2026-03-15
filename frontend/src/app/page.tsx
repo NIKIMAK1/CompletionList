@@ -17,13 +17,20 @@ type GameEntry = {
 };
 
 type AuthMode = "login" | "register";
+type StatusFilter = GameEntry["status"];
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 const statusLabel: Record<GameEntry["status"], string> = {
-  planned: "Планирую",
+  planned: "Буду играть",
   playing: "Играю",
-  completed: "Прошел",
+  completed: "Пройдено",
+};
+
+const statusDescription: Record<GameEntry["status"], string> = {
+  planned: "Тайтлы, которые ждут своей очереди.",
+  playing: "Прохождение в процессе прямо сейчас.",
+  completed: "То, что уже закрыто и можно вспомнить.",
 };
 
 const emptyGameForm = {
@@ -68,6 +75,7 @@ export default function HomePage() {
   const [token, setToken] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [games, setGames] = useState<GameEntry[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("completed");
   const [authForm, setAuthForm] = useState({ username: "", password: "" });
   const [gameForm, setGameForm] = useState(emptyGameForm);
   const [message, setMessage] = useState("");
@@ -147,6 +155,7 @@ export default function HomePage() {
       setGames((currentGames) =>
         [...currentGames, createdGame].sort((left, right) => left.title.localeCompare(right.title)),
       );
+      setSelectedStatus(createdGame.status);
       setGameForm(emptyGameForm);
       setMessage("Игра добавлена в ваш список.");
     } catch (error) {
@@ -174,22 +183,30 @@ export default function HomePage() {
     setMessage("Вы вышли из аккаунта.");
   }
 
+  const filteredGames = games.filter((game) => game.status === selectedStatus);
+  const statusCounts = {
+    completed: games.filter((game) => game.status === "completed").length,
+    playing: games.filter((game) => game.status === "playing").length,
+    planned: games.filter((game) => game.status === "planned").length,
+  };
+
   return (
     <main className="page">
       <section className="hero">
         <div>
-          <p className="eyebrow">Game backlog</p>
-          <h1>Список игр по статусам</h1>
+          <p className="eyebrow">Game Collection</p>
+          <h1>Личный список игр</h1>
           <p className="description">
-            Минимальный трекер с пользователями: регистрируйтесь, входите и ведите свой личный
-            список игр.
+            Карточки в духе каталога: сверху статусы, внутри личная подборка того, что уже пройдено,
+            в процессе или отложено на потом.
           </p>
         </div>
 
         {user ? (
           <div className="accountBox">
-            <p className="accountLabel">Аккаунт</p>
+            <p className="accountLabel">Профиль</p>
             <strong>{user.username}</strong>
+            <span className="accountMeta">{games.length} игр в коллекции</span>
             <button className="secondaryButton" onClick={handleLogout} type="button">
               Выйти
             </button>
@@ -207,8 +224,12 @@ export default function HomePage() {
         <>
           <section className="dashboard">
             <article className="card formCard">
-              <p className="sectionLabel">Новая запись</p>
-              <h2>Добавить игру</h2>
+              <div className="sectionHeader">
+                <div>
+                  <p className="sectionLabel">Новая карточка</p>
+                  <h2>Добавить игру</h2>
+                </div>
+              </div>
               <form className="form" onSubmit={handleCreateGame}>
                 <input
                   placeholder="Название игры"
@@ -239,46 +260,79 @@ export default function HomePage() {
                   ))}
                 </select>
                 <textarea
-                  placeholder="Заметка"
+                  placeholder="Короткая заметка"
                   rows={4}
                   value={gameForm.note}
                   onChange={(event) => setGameForm((current) => ({ ...current, note: event.target.value }))}
                 />
                 <button className="primaryButton" disabled={submitting} type="submit">
-                  Добавить
+                  Сохранить
                 </button>
               </form>
             </article>
 
             <article className="card statsCard">
-              <p className="sectionLabel">Профиль</p>
-              <h2>{user.username}</h2>
-              <p>Ваши игры видны только вам через авторизованный API.</p>
-              <div className="statsRow">
-                <span>{games.length}</span>
-                <small>записей в списке</small>
+              <p className="sectionLabel">Статистика</p>
+              <h2>Коллекция</h2>
+              <div className="statusMiniList">
+                {(["completed", "playing", "planned"] as StatusFilter[]).map((status) => (
+                  <div className="miniStat" key={status}>
+                    <span className={`miniDot status-${status}`} />
+                    <strong>{statusCounts[status]}</strong>
+                    <small>{statusLabel[status]}</small>
+                  </div>
+                ))}
               </div>
             </article>
           </section>
 
-          <section className="grid">
-            {games.length === 0 ? (
-              <article className="card empty">
-                <h2>Список пуст</h2>
-                <p>Добавьте первую игру через форму выше.</p>
-              </article>
-            ) : (
-              games.map((game) => (
-                <article className="card" key={game.id}>
-                  <div className="cardHeader">
-                    <span className={`badge status-${game.status}`}>{statusLabel[game.status]}</span>
-                    <span className="platform">{game.platform || "Без платформы"}</span>
+          <section className="libraryShell">
+            <div className="libraryHeader">
+              <div>
+                <p className="sectionLabel">Библиотека</p>
+                <h2>{statusLabel[selectedStatus]}</h2>
+                <p className="libraryDescription">{statusDescription[selectedStatus]}</p>
+              </div>
+              <div className="statusTabs" role="tablist" aria-label="Фильтр по статусу">
+                {(["completed", "playing", "planned"] as StatusFilter[]).map((status) => (
+                  <button
+                    key={status}
+                    className={selectedStatus === status ? "statusTab activeStatusTab" : "statusTab"}
+                    onClick={() => setSelectedStatus(status)}
+                    type="button"
+                  >
+                    <span>{statusLabel[status]}</span>
+                    <strong>{statusCounts[status]}</strong>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <section className="cardGrid">
+              {filteredGames.length === 0 ? (
+                <article className="gameCard gameCardEmpty">
+                  <div className="gameCardBody">
+                    <p className="sectionLabel">Пусто</p>
+                    <h3>Здесь пока нет игр</h3>
+                    <p>Добавьте запись и выберите этот статус в форме выше.</p>
                   </div>
-                  <h2>{game.title}</h2>
-                  <p>{game.note || "Без заметки"}</p>
                 </article>
-              ))
-            )}
+              ) : (
+                filteredGames.map((game) => (
+                  <article className="gameCard" key={game.id}>
+                    <div className={`gameAccent status-${game.status}`} />
+                    <div className="gameCardBody">
+                      <div className="gameMetaRow">
+                        <span className={`badge status-${game.status}`}>{statusLabel[game.status]}</span>
+                        <span className="platformChip">{game.platform || "Без платформы"}</span>
+                      </div>
+                      <h3>{game.title}</h3>
+                      <p>{game.note || "Без заметки"}</p>
+                    </div>
+                  </article>
+                ))
+              )}
+            </section>
           </section>
         </>
       ) : (
