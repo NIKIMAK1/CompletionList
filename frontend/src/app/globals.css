@@ -29,6 +29,80 @@ body {
   min-height: 100vh;
 }
 
+.siteHeader {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  backdrop-filter: blur(12px);
+  background: rgba(242, 238, 229, 0.84);
+  border-bottom: 1px solid rgba(24, 22, 21, 0.08);
+}
+
+.siteHeaderInner {
+  width: min(1380px, calc(100% - 32px));
+  margin: 0 auto;
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.siteBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.siteBrandMark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #4f6faa, #36507e);
+  color: white;
+  font-weight: 700;
+}
+
+.siteBrandText {
+  display: grid;
+  gap: 3px;
+}
+
+.siteBrandText small {
+  color: var(--muted);
+}
+
+.siteNav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.siteNavLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: var(--text);
+  text-decoration: none;
+  background: rgba(31, 27, 22, 0.06);
+  transition: background 160ms ease, transform 160ms ease, color 160ms ease;
+}
+
+.siteNavLink:hover {
+  transform: translateY(-1px);
+  background: rgba(31, 27, 22, 0.1);
+}
+
+.siteNavLinkActive {
+  background: #1f1b16;
+  color: #fffaf2;
+}
+
 .page {
   width: min(1240px, calc(100% - 32px));
   margin: 0 auto;
@@ -547,6 +621,12 @@ body {
   padding: 22px 0 48px;
 }
 
+.homeUserRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
+}
+
 .homeTopbar {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -609,6 +689,14 @@ body {
 .homeProfileCard,
 .homeAuthCard {
   padding: 18px;
+}
+
+.homeAuthCardPlaceholder {
+  min-height: 176px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.55), rgba(244, 239, 230, 0.92), rgba(255, 255, 255, 0.55));
+  background-size: 220% 100%;
+  animation: shimmer 1.4s linear infinite;
 }
 
 .homeProfileActions {
@@ -827,13 +915,6 @@ body {
   flex-wrap: wrap;
 }
 
-.homeCardGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 190px));
-  gap: 18px;
-  justify-content: start;
-}
-
 .homeGameCard {
   overflow: hidden;
   border: 1px solid var(--border);
@@ -878,6 +959,121 @@ body {
   margin: 10px 0 0;
   color: var(--muted);
   font-size: 14px;
+}
+
+.homeDiscoveryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.homeDiscoveryColumn {
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 18px;
+  background: rgba(255, 252, 246, 0.92);
+  box-shadow: 0 18px 38px rgba(34, 46, 73, 0.08);
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.homeDiscoveryColumnReleased {
+  background:
+    radial-gradient(circle at top, rgba(79, 111, 170, 0.14), transparent 30%),
+    rgba(255, 252, 246, 0.96);
+}
+
+.homeDiscoveryColumnUpcoming {
+  background:
+    radial-gradient(circle at top, rgba(166, 109, 44, 0.12), transparent 32%),
+    rgba(255, 252, 246, 0.96);
+}
+
+.homeDiscoveryColumnAnticipated {
+  background:
+    radial-gradient(circle at top, rgba(46, 123, 101, 0.12), transparent 32%),
+    rgba(255, 252, 246, 0.96);
+}
+
+.homeDiscoveryHead {
+  display: grid;
+  gap: 4px;
+}
+
+.homeDiscoveryHead strong {
+  font-size: 28px;
+  letter-spacing: -0.04em;
+}
+
+.homeDiscoveryLead {
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(24, 22, 21, 0.08);
+}
+
+.homeDiscoveryLeadPoster {
+  position: relative;
+  aspect-ratio: 0.92;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.homeDiscoveryLeadBody {
+  padding: 16px;
+}
+
+.homeDiscoveryLeadBody h3 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 0.96;
+}
+
+.homeDiscoveryList {
+  display: grid;
+  gap: 12px;
+}
+
+.homeDiscoveryItem {
+  display: grid;
+  grid-template-columns: auto 64px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(24, 22, 21, 0.06);
+}
+
+.homeDiscoveryItem img {
+  width: 64px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+}
+
+.homeDiscoveryIndex {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.homeDiscoveryItemBody {
+  min-width: 0;
+}
+
+.homeDiscoveryItemBody strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.05;
+}
+
+.homeDiscoveryItemBody p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .homeSidebar {
@@ -927,19 +1123,7 @@ body {
 
 .gamePageTop {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.gameBackLink {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(31, 27, 22, 0.08);
-  color: var(--text);
-  text-decoration: none;
+  justify-content: flex-end;
 }
 
 .gameSourceBadge {
@@ -949,6 +1133,55 @@ body {
   border-radius: 999px;
   background: rgba(79, 111, 170, 0.12);
   color: #36507e;
+}
+
+.searchPage {
+  width: min(1380px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 52px;
+}
+
+.searchHero {
+  padding: 6px 0 18px;
+}
+
+.searchHero h1 {
+  margin: 0;
+  font-size: clamp(34px, 6vw, 58px);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+.searchPanel {
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: rgba(255, 252, 246, 0.9);
+  box-shadow: 0 18px 42px var(--shadow);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+  font: inherit;
+}
+
+.searchMessage {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+
+.searchGrid {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 190px));
+  gap: 18px;
+  justify-content: start;
 }
 
 .gameHero,
@@ -979,6 +1212,19 @@ body {
   display: block;
   object-fit: cover;
   aspect-ratio: 0.72;
+}
+
+.gameCoverPlaceholder {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--muted);
+  background:
+    radial-gradient(circle at top, rgba(79, 111, 170, 0.14), transparent 34%),
+    rgba(255, 255, 255, 0.72);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
 }
 
 .gameInfoColumn {
@@ -1089,12 +1335,36 @@ body {
   background: rgba(255, 255, 255, 0.7);
 }
 
+.gameShotCardPlaceholder {
+  min-height: 190px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.62), rgba(241, 237, 229, 0.98), rgba(255, 255, 255, 0.62));
+  background-size: 220% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
 .gameShotCard img {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
   aspect-ratio: 1.5;
+}
+
+.gameGalleryEmpty {
+  padding: 20px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -20% 0;
+  }
 }
 
 .gameIntegrationGrid {
@@ -1122,12 +1392,24 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .homeDiscoveryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .gameHero {
     grid-template-columns: 1fr;
   }
 
-  .homeNav {
+  .homeNav,
+  .siteNav {
     justify-content: flex-start;
+  }
+
+  .siteHeaderInner {
+    width: min(100% - 24px, 1380px);
+    padding: 12px 0;
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
@@ -1141,8 +1423,17 @@ body {
     align-items: flex-start;
   }
 
-  .homeCardGrid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  .homeDiscoveryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .homeUserRow {
+    justify-content: stretch;
+  }
+
+  .homeUserPanel {
+    min-width: 0;
+    width: 100%;
   }
 
   .gamePage {
@@ -1157,5 +1448,13 @@ body {
   .gameSectionTop {
     display: grid;
     align-items: start;
+  }
+
+  .searchPage {
+    width: min(100% - 18px, 1380px);
+  }
+
+  .searchGrid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }

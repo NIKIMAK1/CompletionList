@@ -77,11 +77,19 @@ function shortSummary(summary: string) {
   return `${normalized.slice(0, 93).trimEnd()}...`;
 }
 
+function sortByReleaseYearDesc(games: CatalogGame[]) {
+  return [...games].sort((left, right) => (right.release_year ?? -Infinity) - (left.release_year ?? -Infinity));
+}
+
+function sortByRatingDesc(games: CatalogGame[]) {
+  return [...games].sort((left, right) => (right.rating ?? -Infinity) - (left.rating ?? -Infinity));
+}
+
 export default function HomePage() {
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authForm, setAuthForm] = useState({ username: "", password: "" });
-  const [token, setToken] = useState("");
   const [user, setUser] = useState<User | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [catalogGames, setCatalogGames] = useState<CatalogGame[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -91,7 +99,9 @@ export default function HomePage() {
     const storedToken = window.localStorage.getItem("authToken");
     if (storedToken) {
       void loadCurrentUser(storedToken);
+      return;
     }
+    setAuthChecked(true);
     void loadCatalog();
   }, []);
 
@@ -109,12 +119,13 @@ export default function HomePage() {
   async function loadCurrentUser(currentToken: string) {
     try {
       const currentUser = await apiRequest("/auth/me/", {}, currentToken);
-      setToken(currentToken);
       setUser(currentUser);
     } catch {
       window.localStorage.removeItem("authToken");
-      setToken("");
       setUser(null);
+    } finally {
+      setAuthChecked(true);
+      void loadCatalog();
     }
   }
 
@@ -133,6 +144,7 @@ export default function HomePage() {
       window.localStorage.setItem("authToken", data.token);
       setAuthForm({ username: "", password: "" });
       setMessage(authMode === "login" ? "Logged in." : "Account created.");
+      setAuthChecked(true);
       await loadCurrentUser(data.token);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to authenticate.");
@@ -141,59 +153,51 @@ export default function HomePage() {
     }
   }
 
-  async function handleLogout() {
-    if (!token) {
-      return;
-    }
-
-    try {
-      await apiRequest("/auth/logout/", { method: "POST" }, token);
-    } catch {
-      // Local cleanup is enough if the token was already invalidated.
-    }
-
-    window.localStorage.removeItem("authToken");
-    setToken("");
-    setUser(null);
-    setMessage("Logged out.");
-  }
-
   const featuredGame = catalogGames[0] ?? null;
-  const gridGames = catalogGames.slice(1, 9);
-  const recentGames = catalogGames.slice(0, 4);
+  const currentYear = new Date().getFullYear();
+  const releasedGames = sortByReleaseYearDesc(
+    catalogGames.filter((game) => game.release_year !== null && game.release_year <= currentYear),
+  );
+  const upcomingGames = sortByReleaseYearDesc(
+    catalogGames.filter((game) => game.release_year === null || game.release_year > currentYear),
+  );
+  const anticipatedGames = sortByRatingDesc(
+    catalogGames.filter((game) => (game.release_year ?? currentYear + 1) >= currentYear && game.rating !== null),
+  );
+
+  const recentlyReleased = (releasedGames.length ? releasedGames : catalogGames).slice(0, 5);
+  const comingSoon = (upcomingGames.length ? upcomingGames : catalogGames.slice(2)).slice(0, 5);
+  const mostAnticipated = (anticipatedGames.length ? anticipatedGames : sortByRatingDesc(catalogGames)).slice(0, 5);
+
+  const discoveryColumns = [
+    {
+      key: "released",
+      label: "Recently Released",
+      title: "Fresh drops",
+      accent: "homeDiscoveryColumnReleased",
+      games: recentlyReleased,
+    },
+    {
+      key: "upcoming",
+      label: "Coming Soon",
+      title: "On deck",
+      accent: "homeDiscoveryColumnUpcoming",
+      games: comingSoon,
+    },
+    {
+      key: "anticipated",
+      label: "Most Anticipated",
+      title: "Watchlist leaders",
+      accent: "homeDiscoveryColumnAnticipated",
+      games: mostAnticipated,
+    },
+  ];
 
   return (
     <main className="homePage">
-      <header className="homeTopbar">
-        <div className="homeBrand">
-          <div className="homeBrandMark">CL</div>
-          <div>
-            <p className="homeBrandLabel">Completion List</p>
-            <strong>IGDB powered game catalog</strong>
-          </div>
-        </div>
-
-        <nav className="homeNav">
-          <a href="#featured">Featured</a>
-          <a href="#catalog">Catalog</a>
-          <a href="#updates">Recent</a>
-        </nav>
-
+      <section className="homeUserRow">
         <div className="homeUserPanel">
-          {user ? (
-            <div className="homeProfileCard">
-              <p className="homePanelLabel">Profile</p>
-              <strong>{user.username}</strong>
-              <div className="homeProfileActions">
-                <Link className="homeLinkButton" href="/profile">
-                  Open profile
-                </Link>
-                <button className="homeGhostButton" onClick={handleLogout} type="button">
-                  Logout
-                </button>
-              </div>
-            </div>
-          ) : (
+          {authChecked && !user ? (
             <div className="homeAuthCard">
               <div className="homeAuthTabs">
                 <button
@@ -230,9 +234,11 @@ export default function HomePage() {
                 </button>
               </form>
             </div>
-          )}
+          ) : !authChecked ? (
+            <div className="homeAuthCard homeAuthCardPlaceholder" />
+          ) : null}
         </div>
-      </header>
+      </section>
 
       {message ? <p className="homeMessage">{message}</p> : null}
 
@@ -281,48 +287,70 @@ export default function HomePage() {
         <div className="homeMainColumn">
           <div className="homeSectionTop">
             <div>
-              <p className="homeSectionLabel">Catalog</p>
-              <h2>Latest imported from IGDB</h2>
+              <p className="homeSectionLabel">Discovery</p>
+              <h2>Recently Released, Coming Soon, Most Anticipated</h2>
               <p className="homeSectionText">
-                These cards are rendered from the backend discovery endpoint, not from hardcoded template data.
+                Live discovery cards from the backend, rearranged into IGDB-style shelves instead of one flat grid.
               </p>
             </div>
           </div>
 
-          <section className="homeCardGrid">
-            {gridGames.map((game) => (
-              <Link className="homeGameCard homeGameLink" href={gameHref(game)} key={game.igdb_id}>
-                <div className="homeGamePoster">
-                  <img alt={game.title} src={game.cover_url} />
-                  <span className="homeCornerChip">{game.release_year ?? "TBA"}</span>
-                </div>
-                <div className="homeGameBody">
-                  <h3>{game.title}</h3>
-                  <p className="homeGameGenre">{gameMeta(game)}</p>
-                  <div className="homeGameMeta">
-                    <span>{game.release_year ?? "TBA"}</span>
-                    <span>{game.rating ? game.rating.toFixed(1) : "NR"}</span>
-                    <span>{game.tags.slice(0, 2).join(", ") || "IGDB"}</span>
+          <section className="homeDiscoveryGrid">
+            {discoveryColumns.map((column) => {
+              const leadGame = column.games[0];
+              const listGames = column.games.slice(1);
+
+              return (
+                <section className={`homeDiscoveryColumn ${column.accent}`} key={column.key}>
+                  <div className="homeDiscoveryHead">
+                    <p className="homeSectionLabel">{column.label}</p>
+                    <strong>{column.title}</strong>
                   </div>
-                  <p className="homeGameSubtitle">{shortSummary(game.summary)}</p>
-                </div>
-              </Link>
-            ))}
+
+                  {leadGame ? (
+                    <Link className="homeDiscoveryLead homeGameLink" href={gameHref(leadGame)}>
+                      <div className="homeDiscoveryLeadPoster">
+                        <img alt={leadGame.title} src={leadGame.cover_url} />
+                        <span className="homeCornerChip">{leadGame.release_year ?? "TBA"}</span>
+                      </div>
+                      <div className="homeDiscoveryLeadBody">
+                        <h3>{leadGame.title}</h3>
+                        <p className="homeGameGenre">{gameMeta(leadGame)}</p>
+                        <div className="homeGameMeta">
+                          <span>{leadGame.release_year ?? "TBA"}</span>
+                          <span>{leadGame.rating ? leadGame.rating.toFixed(1) : "NR"}</span>
+                        </div>
+                        <p className="homeGameSubtitle">{shortSummary(leadGame.summary)}</p>
+                      </div>
+                    </Link>
+                  ) : null}
+
+                  <div className="homeDiscoveryList">
+                    {listGames.map((game, index) => (
+                      <Link className="homeDiscoveryItem homeGameLink" href={gameHref(game)} key={game.igdb_id}>
+                        <span className="homeDiscoveryIndex">{String(index + 2).padStart(2, "0")}</span>
+                        <img alt={game.title} src={game.cover_url} />
+                        <div className="homeDiscoveryItemBody">
+                          <strong>{game.title}</strong>
+                          <p>
+                            {game.release_year ?? "TBA"} · {gameMeta(game)}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </section>
         </div>
 
         <aside className="homeSidebar" id="updates">
           <section className="homeSideCard">
-            <p className="homeSectionLabel">Recent</p>
-            <h3>Latest releases</h3>
-            <p>Fresh titles from IGDB with cover art and release metadata.</p>
-          </section>
-
-          <section className="homeSideCard">
             <p className="homeSectionLabel">Feed</p>
-            <h3>Quick picks</h3>
+            <h3>Featured picks</h3>
             <div className="homeNewsList">
-              {recentGames.map((game) => (
+              {catalogGames.slice(0, 4).map((game) => (
                 <article className="homeNewsItem" key={game.igdb_id}>
                   <span className="homeNewsDot" />
                   <div>
@@ -334,15 +362,6 @@ export default function HomePage() {
                 </article>
               ))}
             </div>
-          </section>
-
-          <section className="homeSideCard homeAccentCard">
-            <p className="homeSectionLabel">Backend</p>
-            <h3>Integration details</h3>
-            <p>
-              The site now uses server-side IGDB requests with Twitch app tokens, so secrets stay in Django
-              env vars and never reach the browser.
-            </p>
           </section>
         </aside>
       </section>

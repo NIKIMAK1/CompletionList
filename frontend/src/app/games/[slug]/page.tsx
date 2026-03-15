@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type GamePageData = {
   title: string;
@@ -11,37 +11,11 @@ type GamePageData = {
   developer: string;
   platforms: string[];
   genres: string[];
-  cover: string;
+  cover: string | null;
   screenshots: string[];
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-
-const fallbackImages = [
-  "https://images.unsplash.com/photo-1534423861386-85a16f5d13fd?auto=format&fit=crop&w=1000&q=80",
-  "https://images.unsplash.com/photo-1511882150382-421056c89033?auto=format&fit=crop&w=1000&q=80",
-  "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1000&q=80",
-];
-
-const gameTemplates: Record<string, GamePageData> = {
-  "persona-3-reload": {
-    title: "Persona 3 Reload",
-    tagline: "JRPG template page prepared for IGDB integration",
-    description:
-      "Шаблон страницы игры: здесь будут название, описание, постер, галерея скриншотов, платформы, жанры и дополнительные поля из IGDB. Сейчас контент демонстрационный, но структура уже готова под реальный API-ответ.",
-    release: "2024",
-    developer: "Atlus",
-    platforms: ["PC", "PlayStation 5", "Xbox Series X|S"],
-    genres: ["JRPG", "Social Sim", "Story-rich"],
-    cover:
-      "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1000&q=80",
-    screenshots: [
-      "https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1519985176271-adb1088fa94c?auto=format&fit=crop&w=1000&q=80",
-    ],
-  },
-};
 
 function humanizeSlug(slug: string) {
   return slug
@@ -53,21 +27,17 @@ function humanizeSlug(slug: string) {
 }
 
 function templateGame(slug: string): GamePageData {
-  return (
-    gameTemplates[slug] || {
-      title: humanizeSlug(slug),
-      tagline: "Custom game template",
-      description:
-        "Здесь будет карточка игры, когда вы подставите реальные данные из IGDB: summary, artworks, screenshots, release dates, genres и платформы.",
-      release: "TBD",
-      developer: "Unknown",
-      platforms: ["API data"],
-      genres: ["API data"],
-      cover:
-        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80",
-      screenshots: fallbackImages,
-    }
-  );
+  return {
+    title: humanizeSlug(slug),
+    tagline: "IGDB data unavailable",
+    description: "Для этой игры пока не удалось получить данные из backend IGDB endpoint.",
+    release: "TBD",
+    developer: "Unknown",
+    platforms: ["Unknown"],
+    genres: ["Unknown"],
+    cover: null,
+    screenshots: [],
+  };
 }
 
 function normalizeGame(game: any): GamePageData {
@@ -83,24 +53,28 @@ function normalizeGame(game: any): GamePageData {
     developer: game.developer || "Unknown",
     platforms: game.platforms?.length ? game.platforms : ["Unknown"],
     genres: game.genres?.length ? game.genres : ["Unknown"],
-    cover:
-      game.cover_url ||
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80",
-    screenshots: screenshots.length ? screenshots : fallbackImages,
+    cover: game.cover_url || null,
+    screenshots,
   };
 }
 
-export default function GamePage({ params }: { params: { slug: string } }) {
-  const fallbackGame = useMemo(() => templateGame(params.slug), [params.slug]);
-  const [game, setGame] = useState<GamePageData>(fallbackGame);
+export default function GamePage() {
+  const routeParams = useParams<{ slug: string }>();
+  const slug = routeParams.slug;
+  const [game, setGame] = useState<GamePageData | null>(null);
   const [sourceLabel, setSourceLabel] = useState("Загрузка из IGDB...");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadGame() {
+      setIsLoading(true);
+      setGame(null);
+      setSourceLabel("Загрузка из IGDB...");
+
       try {
-        const response = await fetch(`${API_URL}/igdb/game/${encodeURIComponent(params.slug)}/`, {
+        const response = await fetch(`${API_URL}/igdb/game/${encodeURIComponent(slug)}/`, {
           cache: "no-store",
         });
 
@@ -112,73 +86,79 @@ export default function GamePage({ params }: { params: { slug: string } }) {
         if (!cancelled) {
           setGame(normalizeGame(payload));
           setSourceLabel("Источник: backend IGDB API");
+          setIsLoading(false);
         }
       } catch {
         if (!cancelled) {
-          setGame(templateGame(params.slug));
-          setSourceLabel("Источник: local template");
+          setGame(templateGame(slug));
+          setSourceLabel("Источник: fallback without IGDB media");
+          setIsLoading(false);
         }
       }
     }
 
-    setGame(fallbackGame);
-    setSourceLabel("Загрузка из IGDB...");
     void loadGame();
 
     return () => {
       cancelled = true;
     };
-  }, [fallbackGame, params.slug]);
+  }, [slug]);
+
+  const displayTitle = game?.title || humanizeSlug(slug);
+  const displayCover = game?.cover || null;
 
   return (
     <main className="gamePage">
       <div className="gamePageTop">
-        <Link className="gameBackLink" href="/">
-          На главную
-        </Link>
-        <Link className="gameBackLink" href="/profile">
-          В профиль
-        </Link>
         <span className="gameSourceBadge">{sourceLabel}</span>
       </div>
 
       <section className="gameHero">
         <div className="gameCoverColumn">
-          <img alt={game.title} className="gameCoverImage" src={game.cover} />
+          {displayCover ? (
+            <img alt={displayTitle} className="gameCoverImage" src={displayCover} />
+          ) : (
+            <div className="gameCoverImage gameCoverPlaceholder">No cover available</div>
+          )}
         </div>
 
         <div className="gameInfoColumn">
           <p className="gameEyebrow">Game Page</p>
-          <h1>{game.title}</h1>
-          <p className="gameTagline">{game.tagline}</p>
-          <p className="gameDescription">{game.description}</p>
+          <h1>{displayTitle}</h1>
+          {isLoading ? <p className="gameDescription">Загружаем описание и метаданные...</p> : null}
+          {!isLoading && game ? <p className="gameTagline">{game.tagline}</p> : null}
+          {!isLoading && game ? <p className="gameDescription">{game.description}</p> : null}
 
           <div className="gameMetaBoard">
             <div className="gameMetaCard">
               <span>Релиз</span>
-              <strong>{game.release}</strong>
+              <strong>{isLoading ? "..." : game?.release}</strong>
             </div>
             <div className="gameMetaCard">
               <span>Студия</span>
-              <strong>{game.developer}</strong>
+              <strong>{isLoading ? "..." : game?.developer}</strong>
             </div>
           </div>
 
-          <div className="gameTagGroup">
-            {game.platforms.map((platform) => (
-              <span className="gameTag" key={platform}>
-                {platform}
-              </span>
-            ))}
-          </div>
+          {!isLoading && game ? (
+            <div className="gameTagGroup">
+              {game.platforms.map((platform) => (
+                <span className="gameTag" key={platform}>
+                  {platform}
+                </span>
+              ))}
+            </div>
+          ) : null}
 
-          <div className="gameTagGroup">
-            {game.genres.map((genre) => (
-              <span className="gameTag gameTagMuted" key={genre}>
-                {genre}
-              </span>
-            ))}
-          </div>
+          {!isLoading && game ? (
+            <div className="gameTagGroup">
+              {game.genres.map((genre) => (
+                <span className="gameTag gameTagMuted" key={genre}>
+                  {genre}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -191,11 +171,19 @@ export default function GamePage({ params }: { params: { slug: string } }) {
         </div>
 
         <div className="gameGalleryGrid">
-          {game.screenshots.map((image, index) => (
-            <article className="gameShotCard" key={`${image}-${index}`}>
-              <img alt={`${game.title} screenshot ${index + 1}`} src={image} />
-            </article>
-          ))}
+          {isLoading ? (
+            Array.from({ length: 3 }, (_, index) => (
+              <article className="gameShotCard gameShotCardPlaceholder" key={index} />
+            ))
+          ) : game && game.screenshots.length ? (
+            game.screenshots.map((image, index) => (
+              <article className="gameShotCard" key={`${image}-${index}`}>
+                <img alt={`${displayTitle} screenshot ${index + 1}`} src={image} />
+              </article>
+            ))
+          ) : (
+            <div className="gameGalleryEmpty">У этой игры в IGDB сейчас нет доступных скриншотов.</div>
+          )}
         </div>
       </section>
     </main>
