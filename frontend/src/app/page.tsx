@@ -1,137 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type User = {
   id: number;
   username: string;
 };
 
-type StatusKey = "completed" | "playing" | "planned";
-
-type TemplateGame = {
-  id: number;
+type CatalogGame = {
+  igdb_id: number;
   title: string;
-  subtitle: string;
-  year: string;
-  score: string;
-  time: string;
-  status: StatusKey;
-  cover: string;
-  genre: string;
+  summary: string;
+  cover_url: string;
+  release_year: number | null;
+  genres: string[];
+  tags: string[];
+  rating: number | null;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-
-const statusLabel: Record<StatusKey, string> = {
-  completed: "Пройдено",
-  playing: "Играю",
-  planned: "Буду играть",
-};
-
-const featuredGame: TemplateGame = {
-  id: 100,
-  title: "Persona 3 Reload",
-  subtitle: "Новая крупная JRPG недели",
-  year: "2024",
-  score: "8.9",
-  time: "65 ч",
-  status: "playing",
-  cover:
-    "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80",
-  genre: "JRPG, Social Sim",
-};
-
-const templateGames: TemplateGame[] = [
-  {
-    id: 1,
-    title: "Elden Ring",
-    subtitle: "Шаблон новинки",
-    year: "2022",
-    score: "9.3",
-    time: "110 ч",
-    status: "completed",
-    cover:
-      "https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&w=700&q=80",
-    genre: "Action RPG",
-  },
-  {
-    id: 2,
-    title: "Like a Dragon",
-    subtitle: "Шаблон обновления",
-    year: "2024",
-    score: "8.4",
-    time: "42 ч",
-    status: "playing",
-    cover:
-      "https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?auto=format&fit=crop&w=700&q=80",
-    genre: "RPG, Drama",
-  },
-  {
-    id: 3,
-    title: "Metaphor ReFantazio",
-    subtitle: "Шаблон анонса",
-    year: "2025",
-    score: "TBD",
-    time: "90 ч",
-    status: "planned",
-    cover:
-      "https://images.unsplash.com/photo-1511882150382-421056c89033?auto=format&fit=crop&w=700&q=80",
-    genre: "Fantasy RPG",
-  },
-  {
-    id: 4,
-    title: "Cyberpunk 2077",
-    subtitle: "Шаблон новинки",
-    year: "2023",
-    score: "8.7",
-    time: "58 ч",
-    status: "completed",
-    cover:
-      "https://images.unsplash.com/photo-1534423861386-85a16f5d13fd?auto=format&fit=crop&w=700&q=80",
-    genre: "Action RPG",
-  },
-  {
-    id: 5,
-    title: "Final Fantasy VII Rebirth",
-    subtitle: "Шаблон обновления",
-    year: "2024",
-    score: "8.8",
-    time: "74 ч",
-    status: "playing",
-    cover:
-      "https://images.unsplash.com/photo-1519985176271-adb1088fa94c?auto=format&fit=crop&w=700&q=80",
-    genre: "JRPG",
-  },
-  {
-    id: 6,
-    title: "Silent Hill 2",
-    subtitle: "Шаблон анонса",
-    year: "2024",
-    score: "TBD",
-    time: "14 ч",
-    status: "planned",
-    cover:
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=700&q=80",
-    genre: "Horror",
-  },
-];
-
-const newsTemplates = [
-  {
-    title: "Блок новостей",
-    text: "Сюда можно подгружать новости релизов, патчей и анонсов через внешний API.",
-  },
-  {
-    title: "Обновления игр",
-    text: "Шаблон для свежих обновлений: новые DLC, патчи, версии и оценки пользователей.",
-  },
-  {
-    title: "Новые релизы",
-    text: "Отдельный блок под последние игры, вышедшие в этом месяце или сезоне.",
-  },
-];
 
 async function apiRequest(path: string, options: RequestInit = {}, token?: string) {
   const headers = new Headers(options.headers);
@@ -152,7 +40,7 @@ async function apiRequest(path: string, options: RequestInit = {}, token?: strin
     const errorMessage =
       data.detail ||
       (Array.isArray(validationError) ? String(validationError[0]) : undefined) ||
-      "Ошибка запроса";
+      "Request failed";
     throw new Error(errorMessage);
   }
 
@@ -163,28 +51,44 @@ async function apiRequest(path: string, options: RequestInit = {}, token?: strin
   return response.json();
 }
 
+function gameMeta(game: CatalogGame) {
+  if (game.genres.length) {
+    return game.genres.join(", ");
+  }
+  if (game.tags.length) {
+    return game.tags.slice(0, 3).join(", ");
+  }
+  return "IGDB";
+}
+
 export default function HomePage() {
-  const [selectedStatus, setSelectedStatus] = useState<StatusKey>("playing");
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authForm, setAuthForm] = useState({ username: "", password: "" });
   const [token, setToken] = useState("");
   const [user, setUser] = useState<User | null>(null);
+  const [catalogGames, setCatalogGames] = useState<CatalogGame[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
-  const filteredGames = useMemo(
-    () => templateGames.filter((game) => game.status === selectedStatus),
-    [selectedStatus],
-  );
-
   useEffect(() => {
     const storedToken = window.localStorage.getItem("authToken");
-    if (!storedToken) {
-      return;
+    if (storedToken) {
+      void loadCurrentUser(storedToken);
     }
-
-    void loadCurrentUser(storedToken);
+    void loadCatalog();
   }, []);
+
+  async function loadCatalog() {
+    try {
+      const games = await apiRequest("/igdb/discover/");
+      setCatalogGames(games);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to load IGDB catalog.");
+    } finally {
+      setCatalogLoading(false);
+    }
+  }
 
   async function loadCurrentUser(currentToken: string) {
     try {
@@ -212,10 +116,10 @@ export default function HomePage() {
 
       window.localStorage.setItem("authToken", data.token);
       setAuthForm({ username: "", password: "" });
-      setMessage(authMode === "login" ? "Вы вошли в аккаунт." : "Аккаунт создан.");
+      setMessage(authMode === "login" ? "Logged in." : "Account created.");
       await loadCurrentUser(data.token);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Не удалось выполнить авторизацию.");
+      setMessage(error instanceof Error ? error.message : "Unable to authenticate.");
     } finally {
       setSubmitting(false);
     }
@@ -235,8 +139,12 @@ export default function HomePage() {
     window.localStorage.removeItem("authToken");
     setToken("");
     setUser(null);
-    setMessage("Вы вышли из аккаунта.");
+    setMessage("Logged out.");
   }
+
+  const featuredGame = catalogGames[0] ?? null;
+  const gridGames = catalogGames.slice(1, 9);
+  const recentGames = catalogGames.slice(0, 4);
 
   return (
     <main className="homePage">
@@ -245,27 +153,27 @@ export default function HomePage() {
           <div className="homeBrandMark">CL</div>
           <div>
             <p className="homeBrandLabel">Completion List</p>
-            <strong>Новые игры, обновления и каталог</strong>
+            <strong>IGDB powered game catalog</strong>
           </div>
         </div>
 
         <nav className="homeNav">
-          <a href="#featured">Новинки</a>
-          <a href="#catalog">Каталог</a>
-          <a href="#updates">Обновления</a>
+          <a href="#featured">Featured</a>
+          <a href="#catalog">Catalog</a>
+          <a href="#updates">Recent</a>
         </nav>
 
         <div className="homeUserPanel">
           {user ? (
             <div className="homeProfileCard">
-              <p className="homePanelLabel">Профиль</p>
+              <p className="homePanelLabel">Profile</p>
               <strong>{user.username}</strong>
               <div className="homeProfileActions">
                 <Link className="homeLinkButton" href="/profile">
-                  Открыть кабинет
+                  Open profile
                 </Link>
                 <button className="homeGhostButton" onClick={handleLogout} type="button">
-                  Выйти
+                  Logout
                 </button>
               </div>
             </div>
@@ -277,32 +185,32 @@ export default function HomePage() {
                   onClick={() => setAuthMode("login")}
                   type="button"
                 >
-                  Вход
+                  Login
                 </button>
                 <button
                   className={authMode === "register" ? "homeTab homeTabActive" : "homeTab"}
                   onClick={() => setAuthMode("register")}
                   type="button"
                 >
-                  Регистрация
+                  Register
                 </button>
               </div>
               <form className="homeAuthForm" onSubmit={handleAuthSubmit}>
                 <input
-                  placeholder="Логин"
+                  placeholder="Username"
                   required
                   value={authForm.username}
                   onChange={(event) => setAuthForm((current) => ({ ...current, username: event.target.value }))}
                 />
                 <input
-                  placeholder="Пароль"
+                  placeholder="Password"
                   required
                   type="password"
                   value={authForm.password}
                   onChange={(event) => setAuthForm((current) => ({ ...current, password: event.target.value }))}
                 />
                 <button className="homePrimaryButton" disabled={submitting} type="submit">
-                  {authMode === "login" ? "Войти" : "Создать аккаунт"}
+                  {authMode === "login" ? "Login" : "Create account"}
                 </button>
               </form>
             </div>
@@ -314,76 +222,72 @@ export default function HomePage() {
 
       <section className="homeHero" id="featured">
         <div className="homeHeroMain">
-          <p className="homeEyebrow">Public Home</p>
-          <h1>Главная страница каталога игр</h1>
+          <p className="homeEyebrow">Live IGDB</p>
+          <h1>Game covers, genres, tags and release years from IGDB</h1>
           <p className="homeHeroText">
-            Это публичная витрина под интеграцию с внешним API: новинки, карточки игр, обновления,
-            описания, обложки и тематические подборки.
+            The backend requests IGDB through Twitch app authentication and exposes safe site endpoints for
+            search and discovery.
           </p>
           <div className="homeHeroActions">
-            <button className="homePrimaryButton" type="button">
-              Подключить API игр
-            </button>
-            <Link className="homeGhostButton" href="/profile">
-              Перейти в профиль
+            <Link className="homePrimaryButton" href="/profile">
+              Search and save games
             </Link>
+            <a className="homeGhostButton" href="#catalog">
+              Browse catalog
+            </a>
           </div>
         </div>
 
-        <article className="homeFeaturedCard">
-          <img alt={featuredGame.title} src={featuredGame.cover} />
-          <div className="homeFeaturedOverlay">
-            <span className={`homeStatusChip status-${featuredGame.status}`}>{statusLabel[featuredGame.status]}</span>
-            <h2>{featuredGame.title}</h2>
-            <p>{featuredGame.genre}</p>
-            <div className="homeFeaturedMeta">
-              <span>{featuredGame.year}</span>
-              <span>{featuredGame.score}</span>
-              <span>{featuredGame.time}</span>
+        {featuredGame ? (
+          <article className="homeFeaturedCard">
+            <img alt={featuredGame.title} src={featuredGame.cover_url} />
+            <div className="homeFeaturedOverlay">
+              <span className="homeStatusChip">Featured</span>
+              <h2>{featuredGame.title}</h2>
+              <p>{gameMeta(featuredGame)}</p>
+              <div className="homeFeaturedMeta">
+                <span>{featuredGame.release_year ?? "TBA"}</span>
+                <span>{featuredGame.rating ? featuredGame.rating.toFixed(1) : "NR"}</span>
+                <span>{featuredGame.tags.slice(0, 2).join(", ") || "IGDB"}</span>
+              </div>
             </div>
-          </div>
-        </article>
+          </article>
+        ) : (
+          <article className="homeFeaturedCard">
+            <div className="homeFeaturedOverlay">
+              <h2>{catalogLoading ? "Loading catalog..." : "IGDB is not configured yet"}</h2>
+            </div>
+          </article>
+        )}
       </section>
 
       <section className="homeContent" id="catalog">
         <div className="homeMainColumn">
           <div className="homeSectionTop">
             <div>
-              <p className="homeSectionLabel">Каталог</p>
-              <h2>{statusLabel[selectedStatus]}</h2>
+              <p className="homeSectionLabel">Catalog</p>
+              <h2>Latest imported from IGDB</h2>
               <p className="homeSectionText">
-                Шаблон секции, куда будут подставляться реальные игры, описания и обложки из API.
+                These cards are rendered from the backend discovery endpoint, not from hardcoded template data.
               </p>
-            </div>
-            <div className="homeStatusTabs" role="tablist" aria-label="Статусы каталога">
-              {(["completed", "playing", "planned"] as StatusKey[]).map((status) => (
-                <button
-                  key={status}
-                  className={selectedStatus === status ? "homeStatusTab homeStatusTabActive" : "homeStatusTab"}
-                  onClick={() => setSelectedStatus(status)}
-                  type="button"
-                >
-                  {statusLabel[status]}
-                </button>
-              ))}
             </div>
           </div>
 
           <section className="homeCardGrid">
-            {filteredGames.map((game) => (
-              <article className="homeGameCard" key={game.id}>
+            {gridGames.map((game) => (
+              <article className="homeGameCard" key={game.igdb_id}>
                 <div className="homeGamePoster">
-                  <img alt={game.title} src={game.cover} />
-                  <span className={`homeCornerChip status-${game.status}`}>{statusLabel[game.status]}</span>
+                  <img alt={game.title} src={game.cover_url} />
+                  <span className="homeCornerChip">{game.release_year ?? "TBA"}</span>
                 </div>
                 <div className="homeGameBody">
-                  <p className="homeGameSubtitle">{game.subtitle}</p>
+                  <p className="homeGameSubtitle">{game.summary || "No summary available."}</p>
                   <h3>{game.title}</h3>
-                  <p className="homeGameGenre">{game.genre}</p>
+                  <p className="homeGameGenre">{gameMeta(game)}</p>
                   <div className="homeGameMeta">
-                    <span>{game.year}</span>
-                    <span>{game.score}</span>
-                    <span>{game.time}</span>
+                    <span>{game.release_year ?? "TBA"}</span>
+                    <span>{game.rating ? game.rating.toFixed(1) : "NR"}</span>
+                    <span>{game.tags.slice(0, 2).join(", ") || "IGDB"}</span>
                   </div>
                 </div>
               </article>
@@ -393,21 +297,23 @@ export default function HomePage() {
 
         <aside className="homeSidebar" id="updates">
           <section className="homeSideCard">
-            <p className="homeSectionLabel">Новинки</p>
-            <h3>Блок последних релизов</h3>
-            <p>Сюда можно выводить свежие игры, которые пришли из внешнего API.</p>
+            <p className="homeSectionLabel">Recent</p>
+            <h3>Latest releases</h3>
+            <p>Fresh titles from IGDB with cover art and release metadata.</p>
           </section>
 
           <section className="homeSideCard">
-            <p className="homeSectionLabel">Обновления</p>
-            <h3>Патчи, DLC и анонсы</h3>
+            <p className="homeSectionLabel">Feed</p>
+            <h3>Quick picks</h3>
             <div className="homeNewsList">
-              {newsTemplates.map((item) => (
-                <article className="homeNewsItem" key={item.title}>
+              {recentGames.map((game) => (
+                <article className="homeNewsItem" key={game.igdb_id}>
                   <span className="homeNewsDot" />
                   <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.text}</p>
+                    <strong>{game.title}</strong>
+                    <p>
+                      {game.release_year ?? "TBA"} · {gameMeta(game)}
+                    </p>
                   </div>
                 </article>
               ))}
@@ -415,11 +321,11 @@ export default function HomePage() {
           </section>
 
           <section className="homeSideCard homeAccentCard">
-            <p className="homeSectionLabel">Для разработчика</p>
-            <h3>Готово к интеграции</h3>
+            <p className="homeSectionLabel">Backend</p>
+            <h3>Integration details</h3>
             <p>
-              Текущие шаблонные массивы можно заменить на реальный ответ API с играми, картинками,
-              описаниями, рейтингами и датами релиза.
+              The site now uses server-side IGDB requests with Twitch app tokens, so secrets stay in Django
+              env vars and never reach the browser.
             </p>
           </section>
         </aside>

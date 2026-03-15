@@ -10,10 +10,14 @@ class GameEntrySerializer(serializers.ModelSerializer):
         model = GameEntry
         fields = [
             "id",
+            "igdb_id",
             "title",
             "platform",
             "status",
             "cover_url",
+            "release_year",
+            "genres",
+            "tags",
             "rating",
             "note",
             "created_at",

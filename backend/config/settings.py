@@ -90,3 +90,6 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ]
 }
+
+IGDB_CLIENT_ID = os.getenv("IGDB_CLIENT_ID", "")
+IGDB_CLIENT_SECRET = os.getenv("IGDB_CLIENT_SECRET", "")
