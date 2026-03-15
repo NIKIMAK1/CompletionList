@@ -6,6 +6,20 @@ import { useEffect, useState } from "react";
 
 type GameStatus = "planned" | "playing" | "completed";
 
+type UserGameEntry = {
+  id: number;
+  igdb_id: number | null;
+  title: string;
+  platform: string;
+  status: GameStatus;
+  cover_url: string;
+  release_year: number | null;
+  genres: string[];
+  tags: string[];
+  rating: number;
+  note: string;
+};
+
 type GamePageData = {
   igdbId: number | null;
   title: string;
@@ -62,6 +76,14 @@ function humanizeSlug(slug: string) {
     .join(" ");
 }
 
+function slugifyTitle(title: string) {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function templateGame(slug: string): GamePageData {
   return {
     igdbId: Number.isFinite(Number(slug.replace(/^igdb-/, ""))) ? Number(slug.replace(/^igdb-/, "")) : null,
@@ -75,6 +97,23 @@ function templateGame(slug: string): GamePageData {
     tags: [],
     rating: 0,
     cover: null,
+    screenshots: [],
+  };
+}
+
+function normalizeUserGame(game: UserGameEntry): GamePageData {
+  return {
+    igdbId: game.igdb_id,
+    title: game.title,
+    tagline: `${game.platform || "Custom entry"} · ${game.status}`,
+    description: game.note || "Пользовательская карточка без описания.",
+    release: game.release_year ? String(game.release_year) : "TBD",
+    developer: game.platform || "Custom entry",
+    platforms: game.platform ? [game.platform] : ["Unknown"],
+    genres: game.genres?.length ? game.genres : ["Unknown"],
+    tags: game.tags?.length ? game.tags : [],
+    rating: typeof game.rating === "number" ? game.rating : 0,
+    cover: game.cover_url || null,
     screenshots: [],
   };
 }
@@ -125,20 +164,58 @@ export default function GamePage() {
       setGame(null);
 
       try {
-        const response = await fetch(`${API_URL}/igdb/game/${encodeURIComponent(slug)}/`, {
-          cache: "no-store",
-        });
+        const storedToken = window.localStorage.getItem("authToken");
+        const isIgdbSlug = /^igdb-\d+$/.test(slug);
 
-        if (!response.ok) {
-          throw new Error("Game not found");
+        if (!isIgdbSlug && storedToken) {
+          const userGames = (await apiRequest("/games/", {}, storedToken)) as UserGameEntry[];
+          const matchingUserGame = userGames.find((gameEntry) => slugifyTitle(gameEntry.title) === slug);
+
+          if (matchingUserGame && !cancelled) {
+            setGame(normalizeUserGame(matchingUserGame));
+            setIsLoading(false);
+            return;
+          }
         }
 
-        const payload = await response.json();
-        if (!cancelled) {
-          setGame(normalizeGame(payload));
-          setIsLoading(false);
+        if (isIgdbSlug) {
+          const response = await fetch(`${API_URL}/igdb/game/${encodeURIComponent(slug)}/`, {
+            cache: "no-store",
+          });
+
+          if (!response.ok) {
+            throw new Error("Game not found");
+          }
+
+          const payload = await response.json();
+          if (!cancelled) {
+            setGame(normalizeGame(payload));
+            setIsLoading(false);
+          }
+          return;
         }
+
+        throw new Error("Game not found");
       } catch {
+        try {
+          const storedToken = window.localStorage.getItem("authToken");
+          if (storedToken) {
+            const userGames = (await apiRequest("/games/", {}, storedToken)) as UserGameEntry[];
+            const matchingUserGame = userGames.find(
+              (gameEntry) =>
+                slugifyTitle(gameEntry.title) === slug || (gameEntry.igdb_id !== null && `igdb-${gameEntry.igdb_id}` === slug),
+            );
+
+            if (matchingUserGame && !cancelled) {
+              setGame(normalizeUserGame(matchingUserGame));
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // Ignore local list lookup errors and fall back to template data below.
+        }
+
         if (!cancelled) {
           setGame(templateGame(slug));
           setIsLoading(false);

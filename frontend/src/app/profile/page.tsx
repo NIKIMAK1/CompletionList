@@ -102,6 +102,22 @@ function renderStars(rating: number) {
   return Array.from({ length: 5 }, (_, index) => (index < filled ? "*" : ".")).join("");
 }
 
+function compactGameDetails(game: Pick<GameEntry, "release_year" | "genres" | "tags">) {
+  const parts = [];
+
+  if (game.release_year) {
+    parts.push(String(game.release_year));
+  }
+  if (game.genres.length) {
+    parts.push(game.genres.slice(0, 2).join(", "));
+  }
+  if (game.tags.length) {
+    parts.push(`#${game.tags.slice(0, 3).join(" #")}`);
+  }
+
+  return parts.join(" · ");
+}
+
 function splitCommaSeparated(value: string) {
   return value
     .split(",")
@@ -109,8 +125,16 @@ function splitCommaSeparated(value: string) {
     .filter(Boolean);
 }
 
-function gameHref(game: Pick<GameEntry, "igdb_id">) {
-  return game.igdb_id ? `/games/igdb-${game.igdb_id}` : "#";
+function slugifyTitle(title: string) {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function gameHref(game: Pick<GameEntry, "igdb_id" | "title">) {
+  return game.igdb_id ? `/games/igdb-${game.igdb_id}` : `/games/${slugifyTitle(game.title) || "custom-game"}`;
 }
 
 async function apiRequest(path: string, options: RequestInit = {}, token?: string) {
@@ -162,6 +186,7 @@ export default function ProfilePage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [createFormOpen, setCreateFormOpen] = useState(false);
 
   useEffect(() => {
     const storedToken = window.localStorage.getItem("authToken");
@@ -420,303 +445,308 @@ export default function ProfilePage() {
         </section>
       ) : user ? (
         <div className="contentStack">
-          <section className="libraryShell">
-            <div className="libraryHeader">
-              <div>
-                <p className="sectionLabel">Library</p>
-                <h2>{statusLabel[selectedStatus]}</h2>
-                <p className="libraryDescription">{statusDescription[selectedStatus]}</p>
-              </div>
-              <div className="statusTabs" role="tablist" aria-label="Filter by status">
-                {(["completed", "playing", "planned"] as GameStatus[]).map((status) => (
-                  <button
-                    key={status}
-                    className={selectedStatus === status ? "statusTab activeStatusTab" : "statusTab"}
-                    onClick={() => setSelectedStatus(status)}
-                    type="button"
-                  >
-                    <span>{statusLabel[status]}</span>
-                    <strong>{statusCounts[status]}</strong>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <section className="cardGrid">
-              {filteredGames.length === 0 ? (
-                <article className="gameCard gameCardEmpty">
-                  <div className="gameCardBody">
-                    <p className="sectionLabel">Empty</p>
-                    <h3>No games here yet</h3>
-                    <p>Add one from the form on the right.</p>
-                  </div>
-                </article>
-              ) : (
-                filteredGames.map((game) =>
-                  editingGameId === game.id ? (
-                    <article className="gameCard gameCardEditing" key={game.id}>
-                      <div className={`gameAccent status-${game.status}`} />
-                      <form className="gameCardBody form" onSubmit={handleUpdateGame}>
-                        <input
-                          required
-                          value={editingForm.title}
-                          onChange={(event) =>
-                            setEditingForm((current) => ({ ...current, title: event.target.value }))
-                          }
-                        />
-                        <input
-                          placeholder="Platform"
-                          value={editingForm.platform}
-                          onChange={(event) =>
-                            setEditingForm((current) => ({ ...current, platform: event.target.value }))
-                          }
-                        />
-                        <input
-                          placeholder="Cover URL"
-                          value={editingForm.cover_url}
-                          onChange={(event) =>
-                            setEditingForm((current) => ({ ...current, cover_url: event.target.value }))
-                          }
-                        />
-                        <input
-                          placeholder="Release year"
-                          type="number"
-                          value={editingForm.release_year ?? ""}
-                          onChange={(event) =>
-                            setEditingForm((current) => ({
-                              ...current,
-                              release_year: event.target.value ? Number(event.target.value) : null,
-                            }))
-                          }
-                        />
-                        <textarea
-                          placeholder="Genres"
-                          rows={2}
-                          value={editingForm.genres.join(", ")}
-                          onChange={(event) =>
-                            setEditingForm((current) => ({
-                              ...current,
-                              genres: splitCommaSeparated(event.target.value),
-                            }))
-                          }
-                        />
-                        <textarea
-                          placeholder="Tags"
-                          rows={2}
-                          value={editingForm.tags.join(", ")}
-                          onChange={(event) =>
-                            setEditingForm((current) => ({
-                              ...current,
-                              tags: splitCommaSeparated(event.target.value),
-                            }))
-                          }
-                        />
-                        <select
-                          value={editingForm.status}
-                          onChange={(event) =>
-                            setEditingForm((current) => ({
-                              ...current,
-                              status: event.target.value as GameStatus,
-                            }))
-                          }
-                        >
-                          {Object.entries(statusLabel).map(([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          max={10}
-                          min={0}
-                          type="number"
-                          value={editingForm.rating}
-                          onChange={(event) =>
-                            setEditingForm((current) => ({
-                              ...current,
-                              rating: Number(event.target.value) || 0,
-                            }))
-                          }
-                        />
-                        <textarea
-                          rows={4}
-                          value={editingForm.note}
-                          onChange={(event) =>
-                            setEditingForm((current) => ({ ...current, note: event.target.value }))
-                          }
-                        />
-                        <div className="cardActions">
-                          <button className="primaryButton" disabled={submitting} type="submit">
-                            Save
-                          </button>
-                          <button className="ghostButton" onClick={() => setEditingGameId(null)} type="button">
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    </article>
-                  ) : (
-                    <article className="gameCard" key={game.id}>
-                      <div className={`gameAccent status-${game.status}`} />
-                      <Link className="gameCardLink" href={gameHref(game)}>
-                        <div className="gamePosterWrap">
-                          {game.cover_url ? (
-                            <img alt={game.title} className="gamePoster" src={game.cover_url} />
-                          ) : (
-                            <div className="gamePosterPlaceholder">
-                              <span>{game.title.slice(0, 1).toUpperCase()}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="gameCardBody">
-                          <div className="gameMetaRow">
-                            <span className={`badge status-${game.status}`}>{statusLabel[game.status]}</span>
-                            <span className="platformChip">{game.platform || "No platform"}</span>
-                          </div>
-                          <div className="gameHeading">
-                            <h3>{game.title}</h3>
-                            <div className="ratingBlock">
-                              <strong>{game.rating}/10</strong>
-                              <span>{renderStars(game.rating)}</span>
-                            </div>
-                          </div>
-                          {game.release_year ? <p>{game.release_year}</p> : null}
-                          {game.genres.length ? <p>{game.genres.join(", ")}</p> : null}
-                          {game.tags.length ? <p>#{game.tags.slice(0, 4).join(" #")}</p> : null}
-                          <p className="gameNotePreview">{game.note || "No note"}</p>
-                        </div>
-                      </Link>
-                      <div className="gameCardActionBar">
-                        <div className="cardActions">
-                          <button className="ghostButton" onClick={() => startEditing(game)} type="button">
-                            Edit
-                          </button>
-                          <button className="dangerButton" onClick={() => void handleDeleteGame(game.id)} type="button">
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  ),
-                )
-              )}
-            </section>
-          </section>
-
-          <section className="dashboard">
-            <article className="card formCard">
-              <div className="sectionHeader">
+          <div className="profileLayout">
+            <section className="libraryShell">
+              <div className="libraryHeader">
                 <div>
-                  <p className="sectionLabel">New card</p>
-                  <h2>Add game</h2>
+                  <p className="sectionLabel">Library</p>
+                  <h2>{statusLabel[selectedStatus]}</h2>
+                  <p className="libraryDescription">{statusDescription[selectedStatus]}</p>
+                </div>
+                <div className="statusTabs" role="tablist" aria-label="Filter by status">
+                  {(["completed", "playing", "planned"] as GameStatus[]).map((status) => (
+                    <button
+                      key={status}
+                      className={selectedStatus === status ? "statusTab activeStatusTab" : "statusTab"}
+                      onClick={() => setSelectedStatus(status)}
+                      type="button"
+                    >
+                      <span>{statusLabel[status]}</span>
+                      <strong>{statusCounts[status]}</strong>
+                    </button>
+                  ))}
                 </div>
               </div>
-              <form className="form" onSubmit={handleCreateGame}>
-                <input
-                  placeholder="Search in IGDB"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                />
-                {searching ? <p>Searching IGDB...</p> : null}
-                {searchResults.length ? (
-                  <div className="statusMiniList">
-                    {searchResults.slice(0, 5).map((result) => (
-                      <button
-                        className="ghostButton"
-                        key={result.igdb_id}
-                        onClick={() => applyIGDBResult(result)}
-                        type="button"
-                      >
-                        {result.title}
-                        {result.release_year ? ` (${result.release_year})` : ""}
-                      </button>
+
+              <section className="cardGrid">
+                {filteredGames.length === 0 ? (
+                  <article className="gameCard gameCardEmpty">
+                    <div className="gameCardBody">
+                      <p className="sectionLabel">Empty</p>
+                      <h3>No games here yet</h3>
+                      <p>Add one from the form on the right.</p>
+                    </div>
+                  </article>
+                ) : (
+                  filteredGames.map((game) =>
+                    editingGameId === game.id ? (
+                      <article className="gameCard gameCardEditing" key={game.id}>
+                        <div className={`gameAccent status-${game.status}`} />
+                        <form className="gameCardBody form" onSubmit={handleUpdateGame}>
+                          <input
+                            required
+                            value={editingForm.title}
+                            onChange={(event) =>
+                              setEditingForm((current) => ({ ...current, title: event.target.value }))
+                            }
+                          />
+                          <input
+                            placeholder="Platform"
+                            value={editingForm.platform}
+                            onChange={(event) =>
+                              setEditingForm((current) => ({ ...current, platform: event.target.value }))
+                            }
+                          />
+                          <input
+                            placeholder="Cover URL"
+                            value={editingForm.cover_url}
+                            onChange={(event) =>
+                              setEditingForm((current) => ({ ...current, cover_url: event.target.value }))
+                            }
+                          />
+                          <input
+                            placeholder="Release year"
+                            type="number"
+                            value={editingForm.release_year ?? ""}
+                            onChange={(event) =>
+                              setEditingForm((current) => ({
+                                ...current,
+                                release_year: event.target.value ? Number(event.target.value) : null,
+                              }))
+                            }
+                          />
+                          <textarea
+                            placeholder="Genres"
+                            rows={2}
+                            value={editingForm.genres.join(", ")}
+                            onChange={(event) =>
+                              setEditingForm((current) => ({
+                                ...current,
+                                genres: splitCommaSeparated(event.target.value),
+                              }))
+                            }
+                          />
+                          <textarea
+                            placeholder="Tags"
+                            rows={2}
+                            value={editingForm.tags.join(", ")}
+                            onChange={(event) =>
+                              setEditingForm((current) => ({
+                                ...current,
+                                tags: splitCommaSeparated(event.target.value),
+                              }))
+                            }
+                          />
+                          <select
+                            value={editingForm.status}
+                            onChange={(event) =>
+                              setEditingForm((current) => ({
+                                ...current,
+                                status: event.target.value as GameStatus,
+                              }))
+                            }
+                          >
+                            {Object.entries(statusLabel).map(([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            max={10}
+                            min={0}
+                            type="number"
+                            value={editingForm.rating}
+                            onChange={(event) =>
+                              setEditingForm((current) => ({
+                                ...current,
+                                rating: Number(event.target.value) || 0,
+                              }))
+                            }
+                          />
+                          <textarea
+                            rows={4}
+                            value={editingForm.note}
+                            onChange={(event) =>
+                              setEditingForm((current) => ({ ...current, note: event.target.value }))
+                            }
+                          />
+                          <div className="cardActions">
+                            <button className="primaryButton" disabled={submitting} type="submit">
+                              Save
+                            </button>
+                            <button className="ghostButton" onClick={() => setEditingGameId(null)} type="button">
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      </article>
+                    ) : (
+                      <article className="gameCard gameCardCompact" key={game.id}>
+                        <div className={`gameAccent status-${game.status}`} />
+                        <Link className="gameCardLink gameCardLinkCompact" href={gameHref(game)}>
+                          <div className="gamePosterWrap">
+                            {game.cover_url ? (
+                              <img alt={game.title} className="gamePoster" src={game.cover_url} />
+                            ) : (
+                              <div className="gamePosterPlaceholder">
+                                <span>{game.title.slice(0, 1).toUpperCase()}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="gameCardBody">
+                            <div className="gameMetaRow">
+                              <span className={`badge status-${game.status}`}>{statusLabel[game.status]}</span>
+                              <span className="platformChip">{game.platform || "No platform"}</span>
+                            </div>
+                            <div className="gameHeading">
+                              <h3>{game.title}</h3>
+                              <div className="ratingBlock">
+                                <strong>{game.rating}/10</strong>
+                                <span>{renderStars(game.rating)}</span>
+                              </div>
+                            </div>
+                            {compactGameDetails(game) ? <p className="gameCompactMeta">{compactGameDetails(game)}</p> : null}
+                            <p className="gameNotePreview">{game.note || "No note"}</p>
+                          </div>
+                        </Link>
+                        <div className="gameCardActionBar gameCardActionBarCompact">
+                          <div className="cardActions">
+                            <button className="ghostButton" onClick={() => startEditing(game)} type="button">
+                              Edit
+                            </button>
+                            <button className="dangerButton" onClick={() => void handleDeleteGame(game.id)} type="button">
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ),
+                  )
+                )}
+              </section>
+            </section>
+
+            <aside className="dashboard">
+            <article className="card formCard">
+              <p className="sectionLabel">Quick Actions</p>
+              <h2>Create a custom card</h2>
+              <p className="profileCreateText">Add your own game entry or prefill the form from IGDB search.</p>
+              <button
+                className="primaryButton profileCreateButton"
+                onClick={() => setCreateFormOpen((current) => !current)}
+                type="button"
+              >
+                {createFormOpen ? "Hide form" : "Create card"}
+              </button>
+              {createFormOpen ? (
+                <form className="form profileCreateForm" onSubmit={handleCreateGame}>
+                  <input
+                    placeholder="Search in IGDB"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                  />
+                  {searching ? <p>Searching IGDB...</p> : null}
+                  {searchResults.length ? (
+                    <div className="statusMiniList">
+                      {searchResults.slice(0, 5).map((result) => (
+                        <button
+                          className="ghostButton"
+                          key={result.igdb_id}
+                          onClick={() => applyIGDBResult(result)}
+                          type="button"
+                        >
+                          {result.title}
+                          {result.release_year ? ` (${result.release_year})` : ""}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  <input
+                    placeholder="Game title"
+                    required
+                    value={gameForm.title}
+                    onChange={(event) => setGameForm((current) => ({ ...current, title: event.target.value }))}
+                  />
+                  <input
+                    placeholder="Platform"
+                    value={gameForm.platform}
+                    onChange={(event) => setGameForm((current) => ({ ...current, platform: event.target.value }))}
+                  />
+                  <input
+                    placeholder="Cover URL"
+                    value={gameForm.cover_url}
+                    onChange={(event) => setGameForm((current) => ({ ...current, cover_url: event.target.value }))}
+                  />
+                  <input
+                    placeholder="Release year"
+                    type="number"
+                    value={gameForm.release_year ?? ""}
+                    onChange={(event) =>
+                      setGameForm((current) => ({
+                        ...current,
+                        release_year: event.target.value ? Number(event.target.value) : null,
+                      }))
+                    }
+                  />
+                  <textarea
+                    placeholder="Genres, comma separated"
+                    rows={2}
+                    value={gameForm.genres.join(", ")}
+                    onChange={(event) =>
+                      setGameForm((current) => ({
+                        ...current,
+                        genres: splitCommaSeparated(event.target.value),
+                      }))
+                    }
+                  />
+                  <textarea
+                    placeholder="Tags, comma separated"
+                    rows={2}
+                    value={gameForm.tags.join(", ")}
+                    onChange={(event) =>
+                      setGameForm((current) => ({
+                        ...current,
+                        tags: splitCommaSeparated(event.target.value),
+                      }))
+                    }
+                  />
+                  <select
+                    value={gameForm.status}
+                    onChange={(event) =>
+                      setGameForm((current) => ({
+                        ...current,
+                        status: event.target.value as GameStatus,
+                      }))
+                    }
+                  >
+                    {Object.entries(statusLabel).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
                     ))}
-                  </div>
-                ) : null}
-                <input
-                  placeholder="Game title"
-                  required
-                  value={gameForm.title}
-                  onChange={(event) => setGameForm((current) => ({ ...current, title: event.target.value }))}
-                />
-                <input
-                  placeholder="Platform"
-                  value={gameForm.platform}
-                  onChange={(event) => setGameForm((current) => ({ ...current, platform: event.target.value }))}
-                />
-                <input
-                  placeholder="Cover URL"
-                  value={gameForm.cover_url}
-                  onChange={(event) => setGameForm((current) => ({ ...current, cover_url: event.target.value }))}
-                />
-                <input
-                  placeholder="Release year"
-                  type="number"
-                  value={gameForm.release_year ?? ""}
-                  onChange={(event) =>
-                    setGameForm((current) => ({
-                      ...current,
-                      release_year: event.target.value ? Number(event.target.value) : null,
-                    }))
-                  }
-                />
-                <textarea
-                  placeholder="Genres, comma separated"
-                  rows={2}
-                  value={gameForm.genres.join(", ")}
-                  onChange={(event) =>
-                    setGameForm((current) => ({
-                      ...current,
-                      genres: splitCommaSeparated(event.target.value),
-                    }))
-                  }
-                />
-                <textarea
-                  placeholder="Tags, comma separated"
-                  rows={2}
-                  value={gameForm.tags.join(", ")}
-                  onChange={(event) =>
-                    setGameForm((current) => ({
-                      ...current,
-                      tags: splitCommaSeparated(event.target.value),
-                    }))
-                  }
-                />
-                <select
-                  value={gameForm.status}
-                  onChange={(event) =>
-                    setGameForm((current) => ({
-                      ...current,
-                      status: event.target.value as GameStatus,
-                    }))
-                  }
-                >
-                  {Object.entries(statusLabel).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  max={10}
-                  min={0}
-                  placeholder="Rating 0 to 10"
-                  type="number"
-                  value={gameForm.rating}
-                  onChange={(event) =>
-                    setGameForm((current) => ({ ...current, rating: Number(event.target.value) || 0 }))
-                  }
-                />
-                <textarea
-                  placeholder="Short note"
-                  rows={4}
-                  value={gameForm.note}
-                  onChange={(event) => setGameForm((current) => ({ ...current, note: event.target.value }))}
-                />
-                <button className="primaryButton" disabled={submitting} type="submit">
-                  Save
-                </button>
-              </form>
+                  </select>
+                  <input
+                    max={10}
+                    min={0}
+                    placeholder="Rating 0 to 10"
+                    type="number"
+                    value={gameForm.rating}
+                    onChange={(event) =>
+                      setGameForm((current) => ({ ...current, rating: Number(event.target.value) || 0 }))
+                    }
+                  />
+                  <textarea
+                    placeholder="Short note"
+                    rows={4}
+                    value={gameForm.note}
+                    onChange={(event) => setGameForm((current) => ({ ...current, note: event.target.value }))}
+                  />
+                  <button className="primaryButton" disabled={submitting} type="submit">
+                    Save
+                  </button>
+                </form>
+              ) : null}
             </article>
 
             <article className="card statsCard">
@@ -732,7 +762,8 @@ export default function ProfilePage() {
                 ))}
               </div>
             </article>
-          </section>
+            </aside>
+          </div>
         </div>
       ) : (
         <section className="authLayout">

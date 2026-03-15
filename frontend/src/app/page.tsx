@@ -213,9 +213,9 @@ export default function HomePage() {
 
   return (
     <main className="homePage">
-      <section className="homeUserRow">
-        <div className="homeUserPanel">
-          {authChecked && !user ? (
+      {authChecked && !user ? (
+        <section className="homeUserRow">
+          <div className="homeUserPanel">
             <div className="homeAuthCard">
               <div className="homeAuthTabs">
                 <button
@@ -252,11 +252,9 @@ export default function HomePage() {
                 </button>
               </form>
             </div>
-          ) : !authChecked ? (
-            <div className="homeAuthCard homeAuthCardPlaceholder" />
-          ) : null}
-        </div>
-      </section>
+          </div>
+        </section>
+      ) : null}
 
       {message ? <p className="homeMessage">{message}</p> : null}
 
