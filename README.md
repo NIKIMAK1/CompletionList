@@ -7,6 +7,7 @@
 
 Стек:
 - `backend/` — Django + DRF
+- `uv` — Python dependency manager
 - `frontend/` — Next.js App Router
 - `docker-compose.yml` — PostgreSQL + запуск сервисов
 
@@ -31,12 +32,10 @@ Backend:
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+uv sync --frozen
 cp .env.example .env
-python manage.py migrate
-python manage.py runserver
+uv run python manage.py migrate
+uv run python manage.py runserver
 ```
 
 Frontend:
