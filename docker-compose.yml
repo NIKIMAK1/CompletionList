@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16
+    platform: linux/amd64
     restart: unless-stopped
     environment:
       POSTGRES_DB: completion_list
@@ -9,7 +10,12 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./docker-data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U completion_user -d completion_list"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   backend:
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
@@ -22,7 +28,8 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     image: node:22
@@ -37,5 +44,3 @@ services:
     depends_on:
       - backend
 
-volumes:
-  postgres_data:
