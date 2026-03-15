@@ -105,6 +105,7 @@ def _release_year(timestamp: int | None) -> int | None:
 def normalize_game(game: dict[str, Any], *, cover_size: str = "cover_big") -> dict[str, Any]:
     return {
         "igdb_id": game.get("id"),
+        "slug": game.get("slug"),
         "title": game.get("name", ""),
         "summary": game.get("summary", ""),
         "cover_url": _cover_url(((game.get("cover") or {}).get("image_id")), size=cover_size),
@@ -121,7 +122,7 @@ def search_games(search_term: str, limit: int = 10) -> list[dict[str, Any]]:
         return []
 
     query = f"""
-fields name, summary, first_release_date, aggregated_rating, cover.image_id, genres.name, keywords.name;
+fields name, slug, summary, first_release_date, aggregated_rating, cover.image_id, genres.name, keywords.name;
 search "{sanitized}";
 where name != null;
 limit {max(1, min(limit, 20))};
@@ -137,7 +138,7 @@ def discover_games(limit: int = 12) -> list[dict[str, Any]]:
     end_ts = int(end_of_next_year.timestamp())
 
     query = f"""
-fields name, summary, first_release_date, aggregated_rating, total_rating_count, cover.image_id, genres.name, keywords.name;
+fields name, slug, summary, first_release_date, aggregated_rating, total_rating_count, cover.image_id, genres.name, keywords.name;
 where cover != null
   & first_release_date != null
   & first_release_date >= {start_ts}
@@ -147,3 +148,65 @@ sort total_rating_count desc;
 limit {max(1, min(limit, 24))};
 """
     return [normalize_game(item, cover_size="screenshot_big") for item in _post_igdb(query)]
+
+
+def get_game_details(identifier: str) -> dict[str, Any] | None:
+    safe_identifier = identifier.replace('"', '\\"').strip()
+    if not safe_identifier:
+        return None
+
+    is_id_lookup = safe_identifier.startswith("igdb-") or safe_identifier.isdigit()
+    numeric_id = safe_identifier.removeprefix("igdb-")
+    where_clause = f"where id = {numeric_id};" if is_id_lookup else f'where slug = "{safe_identifier}";'
+
+    query = f"""
+fields
+  id,
+  slug,
+  name,
+  summary,
+  storyline,
+  first_release_date,
+  aggregated_rating,
+  cover.image_id,
+  screenshots.image_id,
+  artworks.image_id,
+  genres.name,
+  keywords.name,
+  platforms.name,
+  involved_companies.developer,
+  involved_companies.company.name;
+{where_clause}
+limit 1;
+"""
+    games = _post_igdb(query)
+    if not games:
+        return None
+
+    game = games[0]
+    developer = "Unknown"
+    for item in game.get("involved_companies", []):
+        company = (item.get("company") or {}).get("name")
+        if item.get("developer") and company:
+            developer = company
+            break
+        if developer == "Unknown" and company:
+            developer = company
+
+    return {
+        **normalize_game(game, cover_size="cover_big"),
+        "description": game.get("summary") or game.get("storyline") or "",
+        "storyline": game.get("storyline") or "",
+        "developer": developer,
+        "platforms": [platform["name"] for platform in game.get("platforms", []) if platform.get("name")],
+        "screenshots": [
+            _cover_url(item.get("image_id"), size="screenshot_huge")
+            for item in game.get("screenshots", [])
+            if item.get("image_id")
+        ],
+        "artworks": [
+            _cover_url(item.get("image_id"), size="screenshot_huge")
+            for item in game.get("artworks", [])
+            if item.get("image_id")
+        ],
+    }

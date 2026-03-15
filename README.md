@@ -48,6 +48,13 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
+Для страницы игры с IGDB добавьте в `frontend/.env.local`:
+
+```bash
+IGDB_CLIENT_ID=your_igdb_client_id
+IGDB_CLIENT_SECRET=your_igdb_client_secret
+```
+
 ## Что можно добавить дальше
 
 - пользователи и авторизация

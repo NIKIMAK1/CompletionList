@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
 type User = {
@@ -106,6 +107,10 @@ function splitCommaSeparated(value: string) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function gameHref(game: Pick<GameEntry, "igdb_id">) {
+  return game.igdb_id ? `/games/igdb-${game.igdb_id}` : "#";
 }
 
 async function apiRequest(path: string, options: RequestInit = {}, token?: string) {
@@ -553,31 +558,35 @@ export default function ProfilePage() {
                   ) : (
                     <article className="gameCard" key={game.id}>
                       <div className={`gameAccent status-${game.status}`} />
-                      <div className="gamePosterWrap">
-                        {game.cover_url ? (
-                          <img alt={game.title} className="gamePoster" src={game.cover_url} />
-                        ) : (
-                          <div className="gamePosterPlaceholder">
-                            <span>{game.title.slice(0, 1).toUpperCase()}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="gameCardBody">
-                        <div className="gameMetaRow">
-                          <span className={`badge status-${game.status}`}>{statusLabel[game.status]}</span>
-                          <span className="platformChip">{game.platform || "No platform"}</span>
+                      <Link className="gameCardLink" href={gameHref(game)}>
+                        <div className="gamePosterWrap">
+                          {game.cover_url ? (
+                            <img alt={game.title} className="gamePoster" src={game.cover_url} />
+                          ) : (
+                            <div className="gamePosterPlaceholder">
+                              <span>{game.title.slice(0, 1).toUpperCase()}</span>
+                            </div>
+                          )}
                         </div>
-                        <div className="gameHeading">
-                          <h3>{game.title}</h3>
-                          <div className="ratingBlock">
-                            <strong>{game.rating}/10</strong>
-                            <span>{renderStars(game.rating)}</span>
+                        <div className="gameCardBody">
+                          <div className="gameMetaRow">
+                            <span className={`badge status-${game.status}`}>{statusLabel[game.status]}</span>
+                            <span className="platformChip">{game.platform || "No platform"}</span>
                           </div>
+                          <div className="gameHeading">
+                            <h3>{game.title}</h3>
+                            <div className="ratingBlock">
+                              <strong>{game.rating}/10</strong>
+                              <span>{renderStars(game.rating)}</span>
+                            </div>
+                          </div>
+                          {game.release_year ? <p>{game.release_year}</p> : null}
+                          {game.genres.length ? <p>{game.genres.join(", ")}</p> : null}
+                          {game.tags.length ? <p>#{game.tags.slice(0, 4).join(" #")}</p> : null}
+                          <p>{game.note || "No note"}</p>
                         </div>
-                        {game.release_year ? <p>{game.release_year}</p> : null}
-                        {game.genres.length ? <p>{game.genres.join(", ")}</p> : null}
-                        {game.tags.length ? <p>#{game.tags.slice(0, 4).join(" #")}</p> : null}
-                        <p>{game.note || "No note"}</p>
+                      </Link>
+                      <div className="gameCardActionBar">
                         <div className="cardActions">
                           <button className="ghostButton" onClick={() => startEditing(game)} type="button">
                             Edit

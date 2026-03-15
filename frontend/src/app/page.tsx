@@ -10,6 +10,7 @@ type User = {
 
 type CatalogGame = {
   igdb_id: number;
+  slug?: string | null;
   title: string;
   summary: string;
   cover_url: string;
@@ -59,6 +60,21 @@ function gameMeta(game: CatalogGame) {
     return game.tags.slice(0, 3).join(", ");
   }
   return "IGDB";
+}
+
+function gameHref(game: CatalogGame) {
+  return `/games/${game.slug || `igdb-${game.igdb_id}`}`;
+}
+
+function shortSummary(summary: string) {
+  const normalized = summary.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "No summary available.";
+  }
+  if (normalized.length <= 96) {
+    return normalized;
+  }
+  return `${normalized.slice(0, 93).trimEnd()}...`;
 }
 
 export default function HomePage() {
@@ -239,7 +255,7 @@ export default function HomePage() {
         </div>
 
         {featuredGame ? (
-          <article className="homeFeaturedCard">
+          <Link className="homeFeaturedCard homeFeaturedLink" href={gameHref(featuredGame)}>
             <img alt={featuredGame.title} src={featuredGame.cover_url} />
             <div className="homeFeaturedOverlay">
               <span className="homeStatusChip">Featured</span>
@@ -251,7 +267,7 @@ export default function HomePage() {
                 <span>{featuredGame.tags.slice(0, 2).join(", ") || "IGDB"}</span>
               </div>
             </div>
-          </article>
+          </Link>
         ) : (
           <article className="homeFeaturedCard">
             <div className="homeFeaturedOverlay">
@@ -275,13 +291,12 @@ export default function HomePage() {
 
           <section className="homeCardGrid">
             {gridGames.map((game) => (
-              <article className="homeGameCard" key={game.igdb_id}>
+              <Link className="homeGameCard homeGameLink" href={gameHref(game)} key={game.igdb_id}>
                 <div className="homeGamePoster">
                   <img alt={game.title} src={game.cover_url} />
                   <span className="homeCornerChip">{game.release_year ?? "TBA"}</span>
                 </div>
                 <div className="homeGameBody">
-                  <p className="homeGameSubtitle">{game.summary || "No summary available."}</p>
                   <h3>{game.title}</h3>
                   <p className="homeGameGenre">{gameMeta(game)}</p>
                   <div className="homeGameMeta">
@@ -289,8 +304,9 @@ export default function HomePage() {
                     <span>{game.rating ? game.rating.toFixed(1) : "NR"}</span>
                     <span>{game.tags.slice(0, 2).join(", ") || "IGDB"}</span>
                   </div>
+                  <p className="homeGameSubtitle">{shortSummary(game.summary)}</p>
                 </div>
-              </article>
+              </Link>
             ))}
           </section>
         </div>

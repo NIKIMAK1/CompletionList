@@ -6,6 +6,7 @@ from apps.lists.igdb import (
     IGDBConfigurationError,
     IGDBRequestError,
     discover_games,
+    get_game_details,
     search_games,
 )
 from apps.lists.models import GameEntry
@@ -44,6 +45,21 @@ class IGDBDiscoverView(APIView):
     def get(self, request):
         try:
             return Response(discover_games())
+        except IGDBConfigurationError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except IGDBRequestError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+
+class IGDBGameDetailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, identifier: str):
+        try:
+            game = get_game_details(identifier)
+            if game is None:
+                return Response({"detail": "Game not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(game)
         except IGDBConfigurationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except IGDBRequestError as exc:
